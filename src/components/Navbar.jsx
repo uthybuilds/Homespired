@@ -66,7 +66,16 @@ function Navbar() {
   };
 
   return createPortal(
-    <header className="fixed inset-x-0 top-0 z-40 bg-black/30 backdrop-blur-xl">
+    <header
+      className="fixed inset-x-0 top-0 z-40 bg-black/30 backdrop-blur-xl"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        transform: "translateZ(0)",
+      }}
+    >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">
         <NavLink to="/" className="flex shrink-0 items-center gap-3 pr-4">
           <img
@@ -301,7 +310,7 @@ function Navbar() {
           )
         : null}
     </header>,
-    document.body,
+    document.documentElement,
   );
 }
 

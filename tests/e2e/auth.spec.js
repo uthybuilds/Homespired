@@ -61,7 +61,9 @@ test("signup succeeds and navigates to confirm email", async ({ page }) => {
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page).toHaveURL(/\/confirm-email$/);
   await expect(
-    page.getByText("Check your email to confirm your account."),
+    page.getByRole("heading", {
+      name: "Check your email to confirm your account.",
+    }),
   ).toBeVisible();
 });
 
