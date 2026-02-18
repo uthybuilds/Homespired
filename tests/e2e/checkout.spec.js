@@ -75,7 +75,7 @@ test.beforeEach(async ({ page }) => {
   }, checkoutSeed);
 });
 
-test("checkout submits with discount, delivery, and updates storage", async ({
+test("checkout submits with discount and updates storage", async ({
   page,
 }) => {
   await page.route("https://api.cloudinary.com/**", (route) =>
@@ -91,8 +91,6 @@ test("checkout submits with discount, delivery, and updates storage", async ({
   await page.getByPlaceholder("Email address").fill("ada@example.com");
   await page.getByPlaceholder("Phone number").fill("08012345678");
   await page.getByPlaceholder("Delivery address").fill("12 Orchid Way");
-  await page.locator('input[type="date"]').fill("2026-12-20");
-  await page.locator('input[type="time"]').fill("12:30");
   await page.getByRole("combobox").selectOption("lagos-mainland");
   await page.getByPlaceholder("Discount code").fill("VIP10");
   await page.locator('input[type="file"]').setInputFiles({
@@ -129,8 +127,8 @@ test("checkout submits with discount, delivery, and updates storage", async ({
 
   expect(snapshot.orders).toHaveLength(1);
   expect(snapshot.orders[0].status).toBe("Pending");
-  expect(snapshot.orders[0].deliveryDate).toBe("2026-12-20");
-  expect(snapshot.orders[0].deliveryTime).toBe("12:30");
+  expect(snapshot.orders[0].deliveryDate).toBe("");
+  expect(snapshot.orders[0].deliveryTime).toBe("");
   expect(snapshot.orders[0].discountCode).toBe("VIP10");
   expect(snapshot.orders[0].discountAmount).toBe(12000);
   expect(snapshot.orders[0].zoneId).toBe("lagos-mainland");

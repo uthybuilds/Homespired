@@ -43,7 +43,7 @@ function CheckoutPage() {
       notes: "",
     };
   });
-  const [delivery, setDelivery] = useState({ date: "", time: "" });
+  // removed delivery date/time inputs per requirement
   const [proof, setProof] = useState(null);
   const [proofName, setProofName] = useState("");
   const [status, setStatus] = useState({ type: "idle", message: "" });
@@ -231,8 +231,8 @@ function CheckoutPage() {
         `Total Paid: ₦${grandTotal.toLocaleString()}`,
         "",
         `Payment Proof: ${proofUrl}`,
-        delivery.date ? `Delivery Date: ${delivery.date}` : null,
-        delivery.time ? `Delivery Time: ${delivery.time}` : null,
+        null,
+        null,
         form.notes ? `Notes: ${form.notes}` : null,
       ].filter((line) => line !== null && line !== undefined);
       addOrder({
@@ -249,8 +249,8 @@ function CheckoutPage() {
         zoneId: shippingZone,
         zoneLabel,
         proofUrl,
-        deliveryDate: delivery.date,
-        deliveryTime: delivery.time,
+        deliveryDate: "",
+        deliveryTime: "",
         customer: {
           name: form.name,
           email: form.email,
@@ -414,38 +414,7 @@ function CheckoutPage() {
                     />
                   </label>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                    <span>Delivery date</span>
-                    <input
-                      value={delivery.date}
-                      onChange={(event) =>
-                        setDelivery((prev) => ({
-                          ...prev,
-                          date: event.target.value,
-                        }))
-                      }
-                      type="date"
-                      required
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                    <span>Delivery time</span>
-                    <input
-                      value={delivery.time}
-                      onChange={(event) =>
-                        setDelivery((prev) => ({
-                          ...prev,
-                          time: event.target.value,
-                        }))
-                      }
-                      type="time"
-                      required
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
-                  </label>
-                </div>
+                {/* delivery date/time removed */}
                 <select
                   value={effectiveZone}
                   onChange={(event) => setShippingZone(event.target.value)}
