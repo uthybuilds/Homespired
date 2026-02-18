@@ -15,46 +15,41 @@ import Footer from "../components/Footer.jsx";
 const Motion = motion;
 
 function Home() {
-  const canAnimateOnView =
-    typeof window !== "undefined" && "IntersectionObserver" in window;
-  const inViewProps = canAnimateOnView
-    ? {
-        initial: { opacity: 0, y: 24 },
-        whileInView: { opacity: 1, y: 0 },
-        viewport: { once: true, amount: 0.3 },
-        transition: { duration: 0.6, ease: "easeOut" },
-      }
-    : { initial: false };
+  const sectionMotionProps = {
+    initial: { opacity: 0, y: 24 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: "easeOut" },
+  };
 
   return (
     <div className="min-h-screen bg-porcelain text-obsidian">
       <Navbar />
       <Hero />
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <ConsultationsSection />
       </Motion.div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <ClassSection />
       </Motion.div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <PortfolioSection />
       </Motion.div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <AboutSection />
       </Motion.div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <SignaturePiecesSection />
       </Motion.div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <TestimonialsSection />
       </Motion.div>
       <div>
         <NewsletterSection />
       </div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <FaqSection />
       </Motion.div>
-      <Motion.div {...inViewProps}>
+      <Motion.div {...sectionMotionProps}>
         <ContactSection />
       </Motion.div>
       <Footer />

@@ -35,16 +35,6 @@ function PortfolioImage({ src, alt }) {
 }
 
 function PortfolioPage() {
-  const canAnimateOnView =
-    typeof window !== "undefined" && "IntersectionObserver" in window;
-  const projectMotionProps = canAnimateOnView
-    ? {
-        initial: { opacity: 0, y: 18 },
-        whileInView: { opacity: 1, y: 0 },
-        viewport: { once: true, amount: 0.3 },
-      }
-    : { initial: false };
-
   return (
     <div className="min-h-screen bg-porcelain text-obsidian">
       <Navbar />
@@ -70,16 +60,13 @@ function PortfolioPage() {
           {portfolioProjects.map((project, index) => (
             <Motion.section
               key={project.id}
-              {...projectMotionProps}
-              transition={
-                canAnimateOnView
-                  ? {
-                      duration: 0.6,
-                      ease: "easeOut",
-                      delay: index * 0.05,
-                    }
-                  : undefined
-              }
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.6,
+                ease: "easeOut",
+                delay: index * 0.05,
+              }}
               className="space-y-6"
             >
               <div className="flex flex-col gap-2">
