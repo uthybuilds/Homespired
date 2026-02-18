@@ -1,9 +1,22 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { getSettings, normalizeWhatsAppNumber } from "../utils/catalogStore.js";
 import logoMark from "../homespiredlogo1.jpeg";
 
 function Footer() {
-  const whatsappNumber = normalizeWhatsAppNumber(getSettings().whatsappNumber);
+  const [settings, setSettings] = useState(() => getSettings());
+
+  useEffect(() => {
+    const sync = () => setSettings(getSettings());
+    window.addEventListener("settings-updated", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("settings-updated", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const whatsappNumber = normalizeWhatsAppNumber(settings.whatsappNumber);
   return (
     <footer className="bg-obsidian text-porcelain">
       <div className="mx-auto w-full max-w-6xl px-6 py-16">

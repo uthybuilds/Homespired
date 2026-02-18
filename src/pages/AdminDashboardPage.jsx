@@ -47,6 +47,11 @@ function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState(() => getAnalytics());
   const [form, setForm] = useState(initialForm);
   const [settings, setSettings] = useState(() => getSettings());
+  const [savedSettings, setSavedSettings] = useState(() => getSettings());
+  const [settingsStatus, setSettingsStatus] = useState({
+    type: "idle",
+    message: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageStatus, setImageStatus] = useState({
     type: "idle",
@@ -216,13 +221,9 @@ function AdminDashboardPage() {
 
   const hasSettingsErrors = Object.values(settingsErrors).some(Boolean);
 
-  useEffect(() => {
-    if (hasSettingsErrors) return;
-    saveSettings(settings);
-  }, [settings, hasSettingsErrors]);
-
   const handleSettingChange = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
+    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateInspectionPrice = (id, price) => {
@@ -232,6 +233,7 @@ function AdminDashboardPage() {
         option.id === id ? { ...option, price: Number(price) } : option,
       ),
     }));
+    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateConsultationPrice = (id, price) => {
@@ -241,6 +243,7 @@ function AdminDashboardPage() {
         option.id === id ? { ...option, price: Number(price) } : option,
       ),
     }));
+    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateClassPrice = (id, price) => {
@@ -250,6 +253,7 @@ function AdminDashboardPage() {
         option.id === id ? { ...option, price: Number(price) } : option,
       ),
     }));
+    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateShippingPrice = (id, price) => {
@@ -259,6 +263,25 @@ function AdminDashboardPage() {
         zone.id === id ? { ...zone, price: Number(price) } : zone,
       ),
     }));
+    setSettingsStatus({ type: "idle", message: "" });
+  };
+
+  const isSettingsDirty = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify(savedSettings),
+    [settings, savedSettings],
+  );
+
+  const handleSaveSettings = () => {
+    if (hasSettingsErrors) {
+      setSettingsStatus({
+        type: "error",
+        message: "Fix the highlighted fields before saving.",
+      });
+      return;
+    }
+    saveSettings(settings);
+    setSavedSettings(settings);
+    setSettingsStatus({ type: "success", message: "Settings saved." });
   };
 
   useEffect(() => {
@@ -736,6 +759,27 @@ function AdminDashboardPage() {
                   routing.
                 </div>
               )}
+              {settingsStatus.message && (
+                <div
+                  className={`rounded-2xl border px-4 py-3 text-xs ${
+                    settingsStatus.type === "error"
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : settingsStatus.type === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-ash/30 bg-linen text-ash"
+                  }`}
+                >
+                  {settingsStatus.message}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={hasSettingsErrors || !isSettingsDirty}
+                className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Save Settings
+              </button>
             </div>
           </div>
 
@@ -839,7 +883,10 @@ function AdminDashboardPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setSettings(defaultSettings)}
+                onClick={() => {
+                  setSettings(defaultSettings);
+                  setSettingsStatus({ type: "idle", message: "" });
+                }}
                 className="w-full rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
               >
                 Reset to Default Settings

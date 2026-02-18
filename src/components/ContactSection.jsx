@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { invokeEdgeFunction } from "../utils/supabaseClient.js";
+import { getSettings } from "../utils/catalogStore.js";
 
 const Motion = motion;
 
@@ -12,6 +13,17 @@ function ContactSection() {
     message: "",
   });
   const [status, setStatus] = useState({ type: "idle", message: "" });
+  const [settings, setSettings] = useState(() => getSettings());
+
+  useEffect(() => {
+    const sync = () => setSettings(getSettings());
+    window.addEventListener("settings-updated", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("settings-updated", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -86,7 +98,7 @@ function ContactSection() {
           </p>
           <div className="space-y-2 text-sm text-ash">
             <p>hello@homespired.ng</p>
-            <p>WhatsApp: 09026561373</p>
+            <p>WhatsApp: {settings.whatsappNumber}</p>
             <p>Instagram: @homespired.ng</p>
             <p>Lagos, Nigeria</p>
           </div>
