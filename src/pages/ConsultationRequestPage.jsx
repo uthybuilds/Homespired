@@ -175,36 +175,54 @@ function ConsultationRequestPage({ type }) {
   const uploadProof = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName) {
-      throw new Error("Cloudinary cloud name is missing.");
-    }
-    if (!uploadPreset) {
-      throw new Error(
-        "Cloudinary upload preset is missing. Add VITE_CLOUDINARY_UPLOAD_PRESET in .env and create an unsigned preset.",
+    try {
+      if (!cloudName || !uploadPreset) throw new Error("skip-cloudinary");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        },
       );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message =
+          data?.error?.message || data?.error || "Upload failed on Cloudinary.";
+        throw new Error(message);
+      }
+      if (!data?.secure_url) {
+        throw new Error("Upload failed. No file URL returned.");
+      }
+      return data.secure_url;
+    } catch {
+      try {
+        const path = `proofs/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabase.storage
+          .from("proofs")
+          .upload(path, file, {
+            upsert: true,
+            contentType: file.type || "image/*",
+            cacheControl: "3600",
+          });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage
+          .from("proofs")
+          .getPublicUrl(path);
+        if (!pub?.publicUrl) {
+          throw new Error("Upload failed: storage URL unavailable.");
+        }
+        return pub.publicUrl;
+      } catch (fallbackErr) {
+        const message =
+          fallbackErr instanceof Error
+            ? fallbackErr.message
+            : "Upload failed. Please try again.";
+        throw new Error(message);
+      }
     }
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message =
-        data?.error?.message ||
-        data?.error ||
-        "Upload failed. Check your Cloudinary preset.";
-      throw new Error(message);
-    }
-    if (!data?.secure_url) {
-      throw new Error("Upload failed. No file URL returned.");
-    }
-    return data.secure_url;
   };
 
   const handleSubmit = async (event) => {
