@@ -1,3 +1,13 @@
+import supabase from "./supabaseClient.js";
+const storageMode = import.meta.env.VITE_STORAGE_MODE || "local";
+let __cloudHydrated = false;
+const __isCloud = () => storageMode === "cloud";
+const __dispatchStorage = () => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("storage"));
+  }
+};
+
 const catalogKey = "homespired_catalog_v1";
 const cartKey = "homespired_cart_v1";
 const settingsKey = "homespired_settings_v1";
@@ -87,6 +97,182 @@ export const defaultSettings = {
   inventoryAlertThreshold: 3,
 };
 
+async function __hydrateFromCloud() {
+  if (!__isCloud() || __cloudHydrated) return;
+  __cloudHydrated = true;
+  try {
+    const [
+      { data: cat },
+      { data: disc },
+      { data: cust },
+      { data: ord },
+      { data: req },
+      { data: set },
+      { data: ana },
+    ] = await Promise.all([
+      supabase
+        .from("catalog")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("discounts")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("customers")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("requests")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase.from("settings").select("*").limit(1).maybeSingle(),
+      supabase.from("analytics").select("*").limit(1).maybeSingle(),
+    ]);
+    if (Array.isArray(cat)) {
+      localStorage.setItem(
+        catalogKey,
+        JSON.stringify(
+          cat.map((x) => ({
+            id: x.id,
+            name: x.name,
+            price: Number(x.price || 0),
+            category: x.category,
+            image: x.image_url || x.image,
+            description: x.description,
+            inventory: Number(x.inventory || 0),
+          })),
+        ),
+      );
+    }
+    if (Array.isArray(disc)) {
+      localStorage.setItem(
+        discountsKey,
+        JSON.stringify(
+          disc.map((x) => ({
+            code: x.code,
+            type: x.type,
+            value: Number(x.value || 0),
+            minSubtotal: Number(x.min_subtotal || 0),
+            expiresAt: x.expires_at ? new Date(x.expires_at).getTime() : null,
+            active: x.active !== false,
+            createdAt: x.created_at
+              ? new Date(x.created_at).getTime()
+              : Date.now(),
+          })),
+        ),
+      );
+    }
+    if (Array.isArray(cust)) {
+      localStorage.setItem(
+        customersKey,
+        JSON.stringify(
+          cust.map((x) => ({
+            name: x.name || "",
+            email: x.email,
+            phone: x.phone || "",
+            address: x.address || "",
+            city: x.city || "",
+            state: x.state || "",
+            createdAt: x.created_at
+              ? new Date(x.created_at).getTime()
+              : Date.now(),
+          })),
+        ),
+      );
+    }
+    if (Array.isArray(ord)) {
+      localStorage.setItem(
+        ordersKey,
+        JSON.stringify(
+          ord.map((x) => ({
+            id: x.id,
+            number: x.number,
+            items: x.items || [],
+            subtotal: Number(x.subtotal || 0),
+            shipping: Number(x.shipping || 0),
+            total: Number(x.total || 0),
+            discountCode: x.discount_code || "",
+            discountAmount: Number(x.discount_amount || 0),
+            zoneId: x.zone_id || "",
+            status: x.status || "Pending",
+            customer: x.customer || {},
+            notes: x.notes || "",
+            createdAt: x.created_at
+              ? new Date(x.created_at).getTime()
+              : Date.now(),
+            updatedAt: x.updated_at
+              ? new Date(x.updated_at).getTime()
+              : Date.now(),
+          })),
+        ),
+      );
+    }
+    if (Array.isArray(req)) {
+      localStorage.setItem(
+        requestsKey,
+        JSON.stringify(
+          req.map((x) => ({
+            id: x.id,
+            type: x.type || "request",
+            payload: x.payload || {},
+            status: x.status || "Pending",
+            number: x.number || null,
+            createdAt: x.created_at
+              ? new Date(x.created_at).getTime()
+              : Date.now(),
+            updatedAt: x.updated_at
+              ? new Date(x.updated_at).getTime()
+              : Date.now(),
+          })),
+        ),
+      );
+    }
+    const mergedSettings = set
+      ? {
+          ...defaultSettings,
+          whatsappNumber: set.whatsapp_number || defaultSettings.whatsappNumber,
+          bankName: set.bank_name || defaultSettings.bankName,
+          accountName: set.account_name || defaultSettings.accountName,
+          accountNumber: set.account_number || defaultSettings.accountNumber,
+          inspectionOptions:
+            set.inspection_options || defaultSettings.inspectionOptions,
+          consultationOptions:
+            set.consultation_options || defaultSettings.consultationOptions,
+          classOptions: set.class_options || defaultSettings.classOptions,
+          shippingZones: set.shipping_zones || defaultSettings.shippingZones,
+          inventoryAlertThreshold: Number(
+            set.inventory_alert_threshold ??
+              defaultSettings.inventoryAlertThreshold,
+          ),
+        }
+      : defaultSettings;
+    localStorage.setItem(settingsKey, JSON.stringify(mergedSettings));
+    const mergedAnalytics = ana
+      ? {
+          storeViews: Number(ana.store_views || 0),
+          cartAdds: Number(ana.cart_adds || 0),
+          checkouts: Number(ana.checkouts || 0),
+          lastCheckoutAt: ana.last_checkout_at
+            ? new Date(ana.last_checkout_at).getTime()
+            : null,
+        }
+      : { storeViews: 0, cartAdds: 0, checkouts: 0, lastCheckoutAt: null };
+    localStorage.setItem(analyticsKey, JSON.stringify(mergedAnalytics));
+    __dispatchStorage();
+  } catch (_err) {
+    void _err;
+  }
+}
+
+if (__isCloud()) {
+  __hydrateFromCloud();
+}
+
 export const getCatalog = () => {
   const raw = localStorage.getItem(catalogKey);
   if (!raw) return [];
@@ -100,17 +286,45 @@ export const getCatalog = () => {
 
 export const saveCatalog = (items) => {
   localStorage.setItem(catalogKey, JSON.stringify(items));
+  if (__isCloud()) {
+    const rows = items.map((x) => ({
+      id: x.id,
+      name: x.name,
+      price: x.price,
+      category: x.category,
+      image_url: x.image || x.imageUrl,
+      description: x.description,
+      inventory: x.inventory ?? 0,
+    }));
+    supabase.from("catalog").upsert(rows, { onConflict: "id" });
+  }
 };
 
 export const addCatalogItem = (item) => {
   const next = [item, ...getCatalog()];
   saveCatalog(next);
+  if (__isCloud()) {
+    supabase.from("catalog").upsert([
+      {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        image_url: item.image || item.imageUrl,
+        description: item.description,
+        inventory: item.inventory ?? 0,
+      },
+    ]);
+  }
   return next;
 };
 
 export const removeCatalogItem = (id) => {
   const next = getCatalog().filter((item) => item.id !== id);
   saveCatalog(next);
+  if (__isCloud()) {
+    supabase.from("catalog").delete().eq("id", id);
+  }
   return next;
 };
 
@@ -232,6 +446,22 @@ export const saveSettings = (settings) => {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("settings-updated"));
   }
+  if (__isCloud()) {
+    supabase.from("settings").upsert([
+      {
+        id: "default",
+        whatsapp_number: settings.whatsappNumber,
+        bank_name: settings.bankName,
+        account_name: settings.accountName,
+        account_number: settings.accountNumber,
+        inspection_options: settings.inspectionOptions,
+        consultation_options: settings.consultationOptions,
+        class_options: settings.classOptions,
+        shipping_zones: settings.shippingZones,
+        inventory_alert_threshold: settings.inventoryAlertThreshold,
+      },
+    ]);
+  }
 };
 
 export const getOrders = () => {
@@ -247,6 +477,25 @@ export const getOrders = () => {
 
 export const saveOrders = (orders) => {
   localStorage.setItem(ordersKey, JSON.stringify(orders));
+  if (__isCloud()) {
+    const rows = orders.map((o) => ({
+      id: o.id,
+      number: o.number,
+      items: o.items,
+      subtotal: o.subtotal,
+      shipping: o.shipping,
+      total: o.total,
+      discount_code: o.discountCode || null,
+      discount_amount: o.discountAmount || 0,
+      zone_id: o.zoneId || null,
+      status: o.status || "Pending",
+      customer: o.customer || {},
+      notes: o.notes || "",
+      created_at: o.createdAt ? new Date(o.createdAt).toISOString() : null,
+      updated_at: o.updatedAt ? new Date(o.updatedAt).toISOString() : null,
+    }));
+    supabase.from("orders").upsert(rows, { onConflict: "id" });
+  }
 };
 
 export const getRequests = () => {
@@ -264,6 +513,18 @@ export const saveRequests = (requests) => {
   localStorage.setItem(requestsKey, JSON.stringify(requests));
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("requests-updated"));
+  }
+  if (__isCloud()) {
+    const rows = requests.map((r) => ({
+      id: r.id,
+      type: r.type || "request",
+      payload: r.payload || {},
+      status: r.status || "Pending",
+      number: r.number || null,
+      created_at: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+      updated_at: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
+    }));
+    supabase.from("requests").upsert(rows, { onConflict: "id" });
   }
 };
 
@@ -284,12 +545,41 @@ export const getNextRequestNumber = () => {
 export const addOrder = (order) => {
   const next = [order, ...getOrders()];
   saveOrders(next);
+  if (__isCloud()) {
+    supabase.from("orders").insert([
+      {
+        id: order.id,
+        number: order.number,
+        items: order.items,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        total: order.total,
+        discount_code: order.discountCode || null,
+        discount_amount: order.discountAmount || 0,
+        zone_id: order.zoneId || null,
+        status: order.status || "Pending",
+        customer: order.customer || {},
+        notes: order.notes || "",
+      },
+    ]);
+  }
   return next;
 };
 
 export const addRequest = (request) => {
   const next = [request, ...getRequests()];
   saveRequests(next);
+  if (__isCloud()) {
+    supabase.from("requests").insert([
+      {
+        id: request.id,
+        type: request.type || "request",
+        payload: request.payload || {},
+        status: request.status || "Pending",
+        number: request.number || null,
+      },
+    ]);
+  }
   return next;
 };
 
@@ -305,6 +595,30 @@ export const updateOrder = (orderId, updates) => {
       : order,
   );
   saveOrders(next);
+  if (__isCloud()) {
+    const row = next.find((o) => o.id === orderId);
+    if (row) {
+      supabase.from("orders").upsert([
+        {
+          id: row.id,
+          number: row.number,
+          items: row.items,
+          subtotal: row.subtotal,
+          shipping: row.shipping,
+          total: row.total,
+          discount_code: row.discountCode || null,
+          discount_amount: row.discountAmount || 0,
+          zone_id: row.zoneId || null,
+          status: row.status || "Pending",
+          customer: row.customer || {},
+          notes: row.notes || "",
+          updated_at: row.updatedAt
+            ? new Date(row.updatedAt).toISOString()
+            : new Date().toISOString(),
+        },
+      ]);
+    }
+  }
   return next;
 };
 
@@ -320,6 +634,23 @@ export const updateRequest = (requestId, updates) => {
       : request,
   );
   saveRequests(next);
+  if (__isCloud()) {
+    const row = next.find((r) => r.id === requestId);
+    if (row) {
+      supabase.from("requests").upsert([
+        {
+          id: row.id,
+          type: row.type || "request",
+          payload: row.payload || {},
+          status: row.status || "Pending",
+          number: row.number || null,
+          updated_at: row.updatedAt
+            ? new Date(row.updatedAt).toISOString()
+            : new Date().toISOString(),
+        },
+      ]);
+    }
+  }
   return next;
 };
 
@@ -336,6 +667,17 @@ export const getCustomers = () => {
 
 export const saveCustomers = (customers) => {
   localStorage.setItem(customersKey, JSON.stringify(customers));
+  if (__isCloud()) {
+    const rows = customers.map((c) => ({
+      email: c.email,
+      name: c.name || "",
+      phone: c.phone || "",
+      address: c.address || "",
+      city: c.city || "",
+      state: c.state || "",
+    }));
+    supabase.from("customers").upsert(rows, { onConflict: "email" });
+  }
 };
 
 export const upsertCustomer = (nextCustomer) => {
@@ -351,6 +693,24 @@ export const upsertCustomer = (nextCustomer) => {
       )
     : [{ ...nextCustomer, createdAt: Date.now() }, ...customers];
   saveCustomers(next);
+  if (__isCloud()) {
+    const c = next.find(
+      (entry) =>
+        entry.email?.toLowerCase() === nextCustomer.email?.toLowerCase(),
+    );
+    if (c) {
+      supabase.from("customers").upsert([
+        {
+          email: c.email,
+          name: c.name || "",
+          phone: c.phone || "",
+          address: c.address || "",
+          city: c.city || "",
+          state: c.state || "",
+        },
+      ]);
+    }
+  }
   return next;
 };
 
@@ -388,11 +748,36 @@ export const getDiscounts = () => {
 
 export const saveDiscounts = (discounts) => {
   localStorage.setItem(discountsKey, JSON.stringify(discounts));
+  if (__isCloud()) {
+    const rows = discounts.map((d) => ({
+      code: d.code,
+      type: d.type,
+      value: d.value,
+      min_subtotal: d.minSubtotal || 0,
+      expires_at: d.expiresAt ? new Date(d.expiresAt).toISOString() : null,
+      active: d.active !== false,
+    }));
+    supabase.from("discounts").upsert(rows, { onConflict: "code" });
+  }
 };
 
 export const addDiscount = (discount) => {
   const next = [discount, ...getDiscounts()];
   saveDiscounts(next);
+  if (__isCloud()) {
+    supabase.from("discounts").insert([
+      {
+        code: discount.code,
+        type: discount.type,
+        value: discount.value,
+        min_subtotal: discount.minSubtotal || 0,
+        expires_at: discount.expiresAt
+          ? new Date(discount.expiresAt).toISOString()
+          : null,
+        active: discount.active !== false,
+      },
+    ]);
+  }
   return next;
 };
 
@@ -401,6 +786,9 @@ export const removeDiscount = (code) => {
     (discount) => discount.code.toLowerCase() !== code.toLowerCase(),
   );
   saveDiscounts(next);
+  if (__isCloud()) {
+    supabase.from("discounts").delete().eq("code", code);
+  }
   return next;
 };
 
@@ -411,6 +799,23 @@ export const updateDiscount = (code, updates) => {
       : discount,
   );
   saveDiscounts(next);
+  if (__isCloud()) {
+    const row = next.find((d) => d.code.toLowerCase() === code.toLowerCase());
+    if (row) {
+      supabase.from("discounts").upsert([
+        {
+          code: row.code,
+          type: row.type,
+          value: row.value,
+          min_subtotal: row.minSubtotal || 0,
+          expires_at: row.expiresAt
+            ? new Date(row.expiresAt).toISOString()
+            : null,
+          active: row.active !== false,
+        },
+      ]);
+    }
+  }
   return next;
 };
 
@@ -456,6 +861,19 @@ export const getAnalytics = () => {
 
 export const saveAnalytics = (analytics) => {
   localStorage.setItem(analyticsKey, JSON.stringify(analytics));
+  if (__isCloud()) {
+    supabase.from("analytics").upsert([
+      {
+        id: "default",
+        store_views: analytics.storeViews || 0,
+        cart_adds: analytics.cartAdds || 0,
+        checkouts: analytics.checkouts || 0,
+        last_checkout_at: analytics.lastCheckoutAt
+          ? new Date(analytics.lastCheckoutAt).toISOString()
+          : null,
+      },
+    ]);
+  }
 };
 
 export const trackAnalytics = (field) => {
