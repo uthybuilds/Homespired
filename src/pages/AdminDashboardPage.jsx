@@ -65,6 +65,7 @@ const initialForm = {
 function AdminDashboardPage() {
   const { pushToast } = useToast();
   const [catalog, setCatalog] = useState(() => getCatalog());
+  const [session, setSession] = useState(null);
   const [orders, setOrders] = useState(() => getOrders());
   const [requests, setRequests] = useState(() => getRequests());
   const [customers, setCustomers] = useState(() => getCustomers());
@@ -88,6 +89,15 @@ function AdminDashboardPage() {
   });
 
   const [isImporting, setIsImporting] = useState(false);
+  const [editingId, setEditingId] = useState("");
+  const [editForm, setEditForm] = useState({
+    name: "",
+    price: "",
+    category: categories[0],
+    image: "",
+    description: "",
+    inventory: "",
+  });
 
   const importLocalToCloud = async () => {
     try {
@@ -116,6 +126,53 @@ function AdminDashboardPage() {
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const isAdmin =
+    session?.user?.email?.toLowerCase() === "uthmanajanaku@gmail.com";
+
+  useEffect(() => {
+    let isActive = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!isActive) return;
+      setSession(data.session);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isActive) return;
+      setSession(nextSession);
+    });
+    return () => {
+      isActive = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (import.meta.env.VITE_STORAGE_MODE !== "cloud") return;
+    let isMounted = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("catalog")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!isMounted) return;
+      if (!error && Array.isArray(data)) {
+        setCatalog(
+          data.map((x) => ({
+            id: x.id,
+            name: x.name,
+            price: Number(x.price || 0),
+            category: x.category,
+            image: x.image_url || x.image,
+            description: x.description,
+            inventory: Number(x.inventory || 0),
+          })),
+        );
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -289,8 +346,79 @@ function AdminDashboardPage() {
     pushToast({ type: "success", message: "Product published." });
   };
 
-  const handleRemove = (id) => {
+  const handleRemove = async (id) => {
     setCatalog(removeCatalogItem(id));
+    if (import.meta.env.VITE_STORAGE_MODE === "cloud") {
+      const { error } = await supabase.from("catalog").delete().eq("id", id);
+      if (error) {
+        pushToast({
+          type: "error",
+          message: isAdmin
+            ? "Cloud delete failed. Try again."
+            : "Cloud delete failed. Sign in as admin.",
+        });
+      } else {
+        pushToast({ type: "success", message: "Product removed." });
+      }
+    }
+  };
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setEditForm({
+      name: item.name,
+      price: String(item.price),
+      category: item.category,
+      image: item.image,
+      description: item.description,
+      inventory: String(item.inventory ?? 0),
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const next = catalog.map((p) =>
+      p.id === editingId
+        ? {
+            ...p,
+            name: editForm.name.trim(),
+            price: Number(editForm.price || 0),
+            category: editForm.category,
+            image: editForm.image.trim(),
+            description: editForm.description.trim(),
+            inventory: Number(editForm.inventory || 0),
+          }
+        : p,
+    );
+    saveCatalog(next);
+    setCatalog(next);
+    if (import.meta.env.VITE_STORAGE_MODE === "cloud") {
+      const row = next.find((x) => x.id === editingId);
+      if (row) {
+        const { error } = await supabase.from("catalog").upsert([
+          {
+            id: row.id,
+            name: row.name,
+            price: row.price,
+            category: row.category,
+            image_url: row.image,
+            description: row.description,
+            inventory: row.inventory ?? 0,
+          },
+        ]);
+        if (error) {
+          pushToast({
+            type: "error",
+            message: isAdmin
+              ? "Cloud save failed. Try again."
+              : "Cloud save failed. Sign in as admin.",
+          });
+        } else {
+          pushToast({ type: "success", message: "Product updated." });
+        }
+      }
+    }
+    setEditingId("");
   };
 
   const settingsErrors = useMemo(() => {
@@ -928,22 +1056,114 @@ function AdminDashboardPage() {
                             />
                             <div>
                               <p className="text-sm font-semibold text-obsidian">
-                                {item.name}
+                                {editingId === item.id ? (
+                                  <input
+                                    value={editForm.name}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        name: e.target.value,
+                                      }))
+                                    }
+                                    type="text"
+                                    className="rounded-md border border-ash/40 px-2 py-1 text-sm"
+                                  />
+                                ) : (
+                                  item.name
+                                )}
                               </p>
                               <p className="text-xs text-ash">
-                                {item.category}
+                                {editingId === item.id ? (
+                                  <select
+                                    value={editForm.category}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        category: e.target.value,
+                                      }))
+                                    }
+                                    className="rounded-md border border-ash/40 px-2 py-1 text-xs"
+                                  >
+                                    {categories.map((c) => (
+                                      <option key={c} value={c}>
+                                        {c}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  item.category
+                                )}
                               </p>
                               <p className="text-xs text-ash">
-                                ₦{item.price.toLocaleString()}
+                                {editingId === item.id ? (
+                                  <input
+                                    value={editForm.price}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        price: e.target.value,
+                                      }))
+                                    }
+                                    type="number"
+                                    className="w-28 rounded-md border border-ash/40 px-2 py-1 text-xs"
+                                  />
+                                ) : (
+                                  `₦${Number(item.price).toLocaleString()}`
+                                )}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {editingId === item.id ? (
+                                  <input
+                                    value={editForm.inventory}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        inventory: e.target.value,
+                                      }))
+                                    }
+                                    type="number"
+                                    className="w-28 rounded-md border border-ash/40 px-2 py-1 text-xs"
+                                  />
+                                ) : (
+                                  `${Number(item.inventory || 0)} in stock`
+                                )}
                               </p>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleRemove(item.id)}
-                            className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex flex-wrap gap-3">
+                            {editingId === item.id ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={saveEdit}
+                                  className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingId("")}
+                                  className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(item)}
+                                className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemove(item.id)}
+                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
