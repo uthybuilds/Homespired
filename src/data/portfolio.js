@@ -42,16 +42,16 @@ import idk092 from "../Project IDK/interiorswithzenchy-092.jpg";
 export const portfolioProjects = [
   {
     id: "larami",
-    title: "Larami Residence",
+    title: "Larami Content Studio",
     location: "Lekki Phase 1, Lagos",
-    year: "2024",
+    year: "2025",
     summary:
-      "A warm modern residence with sculpted joinery, layered neutrals, and soft architectural lighting.",
-    focus: "Spatial flow, relaxed luxury, and tailored storage",
+      "A refined content studio designed for flexible shoots, balanced light, and polished storytelling.",
+    focus: "Camera-ready zones, adaptable styling, and controlled lighting",
     materials: "Matte oak, travertine, brushed brass, boucle textiles",
     deliverables: "Concept, procurement, lighting plan, styling",
     story:
-      "A serene family residence designed to feel both gallery‑calm and deeply livable, balancing sculptural form with warm tactile layers.",
+      "A content studio shaped for creators, blending sculptural form with functional backdrops that shift from editorial calm to bold campaign sets.",
     images: [
       larami01,
       larami01b,
