@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import {
   addOrder,
   adjustInventory,
@@ -16,6 +17,7 @@ import {
 } from "../utils/catalogStore.js";
 
 function CheckoutPage() {
+  const { pushToast } = useToast();
   const [items, setItems] = useState(() => getCart());
   const [settings, setSettings] = useState(() => getSettings());
   const [shippingZone, setShippingZone] = useState(
@@ -138,7 +140,7 @@ function CheckoutPage() {
     event.preventDefault();
     const whatsappNumber = normalizeWhatsAppNumber(settings.whatsappNumber);
     if (!whatsappNumber) {
-      setStatus({
+      pushToast({
         type: "error",
         message: "Add a WhatsApp number in admin settings to continue.",
       });
@@ -149,21 +151,21 @@ function CheckoutPage() {
       !settings.accountName ||
       !settings.accountNumber
     ) {
-      setStatus({
+      pushToast({
         type: "error",
         message: "Complete bank details in admin settings to continue.",
       });
       return;
     }
     if (!proof) {
-      setStatus({
+      pushToast({
         type: "error",
         message: "Upload your payment proof to continue.",
       });
       return;
     }
     try {
-      setStatus({ type: "loading", message: "Uploading proof..." });
+      setStatus({ type: "loading", message: "" });
       const proofUrl = await uploadProof(proof);
       const orderNumber = getNextOrderNumber();
       const orderId = `order-${Date.now()}`;
@@ -246,7 +248,8 @@ function CheckoutPage() {
       const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
         message,
       )}`;
-      setStatus({
+      setStatus({ type: "idle", message: "" });
+      pushToast({
         type: "success",
         message: "Order placed. We will confirm shortly.",
       });
@@ -256,7 +259,8 @@ function CheckoutPage() {
       }
       window.location.href = url;
     } catch (error) {
-      setStatus({
+      setStatus({ type: "idle", message: "" });
+      pushToast({
         type: "error",
         message:
           error instanceof Error
@@ -441,19 +445,6 @@ function CheckoutPage() {
                   />
                 </div>
               </div>
-              {status.message && (
-                <div
-                  className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
-                    status.type === "error"
-                      ? "border-red-200 bg-red-50 text-red-700"
-                      : status.type === "success"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-ash/30 bg-linen text-ash"
-                  }`}
-                >
-                  {status.message}
-                </div>
-              )}
               <button
                 type="submit"
                 disabled={status.type === "loading"}

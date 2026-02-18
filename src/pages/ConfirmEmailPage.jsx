@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import supabase from "../utils/supabaseClient.js";
 
 function ConfirmEmailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { pushToast } = useToast();
   const mode = searchParams.get("type");
   const code = searchParams.get("code");
   const prefillEmail = searchParams.get("email") || "";
@@ -26,10 +28,12 @@ function ConfirmEmailPage() {
     if (!code) return;
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
-        setStatus({ type: "error", message: error.message });
+        setStatus({ type: "idle", message: "" });
+        pushToast({ type: "error", message: error.message });
         return;
       }
-      setStatus({
+      setStatus({ type: "idle", message: "" });
+      pushToast({
         type: "success",
         message:
           mode === "recovery"
@@ -43,29 +47,31 @@ function ConfirmEmailPage() {
         setTimeout(() => navigate("/login"), 1500);
       }
     });
-  }, [code, mode, navigate]);
+  }, [code, mode, navigate, pushToast]);
 
   const handleVerifyOtp = async (event) => {
     event.preventDefault();
     if (!email.trim()) {
-      setStatus({ type: "error", message: "Enter your email to continue." });
+      pushToast({ type: "error", message: "Enter your email to continue." });
       return;
     }
     if (otp.trim().length !== 8) {
-      setStatus({ type: "error", message: "Enter the 8-digit code." });
+      pushToast({ type: "error", message: "Enter the 8-digit code." });
       return;
     }
-    setStatus({ type: "loading", message: "Verifying code..." });
+    setStatus({ type: "loading", message: "" });
     const { error } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: otp.trim(),
       type: mode === "recovery" ? "recovery" : "signup",
     });
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({ type: "idle", message: "" });
+      pushToast({ type: "error", message: error.message });
       return;
     }
-    setStatus({
+    setStatus({ type: "idle", message: "" });
+    pushToast({
       type: "success",
       message:
         mode === "recovery"
@@ -81,13 +87,15 @@ function ConfirmEmailPage() {
 
   const handleResetPassword = async (event) => {
     event.preventDefault();
-    setStatus({ type: "loading", message: "Updating password..." });
+    setStatus({ type: "loading", message: "" });
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({ type: "idle", message: "" });
+      pushToast({ type: "error", message: error.message });
       return;
     }
-    setStatus({
+    setStatus({ type: "idle", message: "" });
+    pushToast({
       type: "success",
       message: "Password updated. You can now sign in.",
     });
@@ -186,19 +194,6 @@ function ConfirmEmailPage() {
                   Back to sign in
                 </NavLink>
               </div>
-            </div>
-          )}
-          {status.message && (
-            <div
-              className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${
-                status.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : status.type === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-ash/30 bg-linen text-ash"
-              }`}
-            >
-              {status.message}
             </div>
           )}
           {canResetPassword ? (

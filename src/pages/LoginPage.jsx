@@ -2,28 +2,32 @@ import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import supabase from "../utils/supabaseClient.js";
 
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const adminEmail = "uthmanajanaku@gmail.com";
+  const { pushToast } = useToast();
   const [form, setForm] = useState({ email: "", password: "" });
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setStatus({ type: "loading", message: "Signing in..." });
+    setStatus({ type: "loading", message: "" });
     const { data, error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     });
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({ type: "idle", message: "" });
+      pushToast({ type: "error", message: error.message });
       return;
     }
-    setStatus({ type: "success", message: "Signed in successfully." });
+    setStatus({ type: "idle", message: "" });
+    pushToast({ type: "success", message: "Signed in successfully." });
     const userEmail = data?.user?.email?.toLowerCase() || "";
     const isAdmin = userEmail === adminEmail.toLowerCase();
     const destination =
@@ -112,19 +116,6 @@ function LoginPage() {
                 Forgot password?
               </NavLink>
             </div>
-            {status.message && (
-              <div
-                className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${
-                  status.type === "error"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : status.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-ash/30 bg-porcelain text-ash"
-                }`}
-              >
-                {status.message}
-              </div>
-            )}
             <button
               type="submit"
               disabled={status.type === "loading"}

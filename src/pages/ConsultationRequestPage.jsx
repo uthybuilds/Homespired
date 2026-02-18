@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import {
   addRequest,
   getNextRequestNumber,
@@ -12,6 +13,7 @@ import { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
 function ConsultationRequestPage({ type }) {
   const { optionId } = useParams();
+  const { pushToast } = useToast();
   const [settings, setSettings] = useState(() => getSettings());
   const [form, setForm] = useState({
     name: "",
@@ -89,7 +91,7 @@ function ConsultationRequestPage({ type }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!option) {
-      setStatus({ type: "error", message: "Package not found." });
+      pushToast({ type: "error", message: "Package not found." });
       return;
     }
     if (!option.redirectOnly) {
@@ -98,7 +100,7 @@ function ConsultationRequestPage({ type }) {
         !settings.accountName ||
         !settings.accountNumber
       ) {
-        setStatus({
+        pushToast({
           type: "error",
           message: "Complete bank details in admin settings to continue.",
         });
@@ -106,7 +108,7 @@ function ConsultationRequestPage({ type }) {
       }
 
       if (!proof) {
-        setStatus({
+        pushToast({
           type: "error",
           message: "Upload your payment proof to continue.",
         });
@@ -117,9 +119,7 @@ function ConsultationRequestPage({ type }) {
     try {
       setStatus({
         type: "loading",
-        message: option.redirectOnly
-          ? "Opening WhatsApp..."
-          : "Uploading proof...",
+        message: "",
       });
       const requestNumber = getNextRequestNumber();
       const requestRef = `Request ${requestNumber}`;
@@ -127,7 +127,8 @@ function ConsultationRequestPage({ type }) {
       if (option.redirectOnly) {
         const whatsappNumber = normalizeWhatsAppNumber(settings.whatsappNumber);
         if (!whatsappNumber) {
-          setStatus({
+          setStatus({ type: "idle", message: "" });
+          pushToast({
             type: "error",
             message:
               "Add a valid WhatsApp number in admin settings to continue.",
@@ -179,7 +180,8 @@ function ConsultationRequestPage({ type }) {
           proofUrl: "",
           createdAt: Date.now(),
         });
-        setStatus({
+        setStatus({ type: "idle", message: "" });
+        pushToast({
           type: "success",
           message: "Request ready. We will confirm shortly.",
         });
@@ -272,9 +274,13 @@ function ConsultationRequestPage({ type }) {
         proofUrl,
         createdAt: Date.now(),
       });
-      setStatus({
+      setStatus({ type: "idle", message: "" });
+      pushToast({
         type: "success",
-        message: "Request received. We will confirm shortly.",
+        message:
+          type === "class"
+            ? "Request received"
+            : "Request received. We will confirm shortly.",
       });
       setForm({
         name: "",
@@ -288,7 +294,8 @@ function ConsultationRequestPage({ type }) {
       setProof(null);
       setProofName("");
     } catch (error) {
-      setStatus({
+      setStatus({ type: "idle", message: "" });
+      pushToast({
         type: "error",
         message:
           error instanceof Error
@@ -489,19 +496,6 @@ function ConsultationRequestPage({ type }) {
                   }}
                   className="sr-only"
                 />
-              </div>
-            )}
-            {status.message && (
-              <div
-                className={`rounded-2xl border px-4 py-3 text-sm ${
-                  status.type === "error"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : status.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-ash/30 bg-linen text-ash"
-                }`}
-              >
-                {status.message}
               </div>
             )}
             <button

@@ -2,12 +2,14 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import supabase from "../utils/supabaseClient.js";
 import { upsertCustomer } from "../utils/catalogStore.js";
 
 function SignupPage() {
   const navigate = useNavigate();
   const adminEmail = "uthmanajanaku@gmail.com";
+  const { pushToast } = useToast();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -18,7 +20,7 @@ function SignupPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setStatus({ type: "loading", message: "Creating account..." });
+    setStatus({ type: "loading", message: "" });
     const isAdmin =
       form.email.trim().toLowerCase() === adminEmail.toLowerCase();
     const { error } = await supabase.auth.signUp({
@@ -33,14 +35,16 @@ function SignupPage() {
       },
     });
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({ type: "idle", message: "" });
+      pushToast({ type: "error", message: error.message });
       return;
     }
     upsertCustomer({
       name: form.fullName,
       email: form.email,
     });
-    setStatus({
+    setStatus({ type: "idle", message: "" });
+    pushToast({
       type: "success",
       message: "Check your email to confirm your account.",
     });
@@ -135,19 +139,6 @@ function SignupPage() {
                 </button>
               </div>
             </div>
-            {status.message && (
-              <div
-                className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${
-                  status.type === "error"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : status.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-ash/30 bg-linen text-ash"
-                }`}
-              >
-                {status.message}
-              </div>
-            )}
             <button
               type="submit"
               disabled={status.type === "loading"}

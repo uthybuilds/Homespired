@@ -2,23 +2,27 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import supabase from "../utils/supabaseClient.js";
 
 function ForgotPasswordPage() {
+  const { pushToast } = useToast();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState({ type: "idle", message: "" });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setStatus({ type: "loading", message: "Sending reset link..." });
+    setStatus({ type: "loading", message: "" });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/confirm-email?type=recovery`,
     });
     if (error) {
-      setStatus({ type: "error", message: error.message });
+      setStatus({ type: "idle", message: "" });
+      pushToast({ type: "error", message: error.message });
       return;
     }
-    setStatus({
+    setStatus({ type: "success", message: "" });
+    pushToast({
       type: "success",
       message: "Check your email for the password reset link.",
     });
@@ -52,19 +56,6 @@ function ForgotPasswordPage() {
             required
             className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
           />
-          {status.message && (
-            <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
-                status.type === "error"
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : status.type === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-ash/30 bg-porcelain text-ash"
-              }`}
-            >
-              {status.message}
-            </div>
-          )}
           {status.type === "success" ? (
             <NavLink
               to={`/confirm-email?type=recovery&email=${encodeURIComponent(

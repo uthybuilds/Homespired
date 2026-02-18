@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import {
   addDiscount,
   addCatalogItem,
@@ -31,6 +32,20 @@ const categories = [
   "Custom Commissions",
 ];
 
+const navSections = [
+  { id: "overview", label: "Overview" },
+  { id: "catalog", label: "Catalog" },
+  { id: "upload", label: "Upload" },
+  { id: "settings", label: "Settings" },
+  { id: "pricing", label: "Pricing" },
+  { id: "orders", label: "Orders" },
+  { id: "requests", label: "Requests" },
+  { id: "customers", label: "Customers" },
+  { id: "discounts", label: "Discounts" },
+  { id: "analytics", label: "Analytics" },
+  { id: "inventory", label: "Inventory" },
+];
+
 const initialForm = {
   name: "",
   price: "",
@@ -42,6 +57,7 @@ const initialForm = {
 };
 
 function AdminDashboardPage() {
+  const { pushToast } = useToast();
   const [catalog, setCatalog] = useState(() => getCatalog());
   const [orders, setOrders] = useState(() => getOrders());
   const [requests, setRequests] = useState(() => getRequests());
@@ -51,15 +67,10 @@ function AdminDashboardPage() {
   const [form, setForm] = useState(initialForm);
   const [settings, setSettings] = useState(() => getSettings());
   const [savedSettings, setSavedSettings] = useState(() => getSettings());
-  const [settingsStatus, setSettingsStatus] = useState({
-    type: "idle",
-    message: "",
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageStatus, setImageStatus] = useState({
-    type: "idle",
-    message: "",
-  });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [pendingOrderStatus, setPendingOrderStatus] = useState({});
+  const [pendingRequestStatus, setPendingRequestStatus] = useState({});
   const [discountForm, setDiscountForm] = useState({
     code: "",
     type: "percent",
@@ -144,7 +155,6 @@ function AdminDashboardPage() {
   const handleImageFile = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setImageStatus({ type: "loading", message: "Optimizing image..." });
     try {
       const result = await optimizeImage(file);
       setForm((prev) => ({
@@ -152,14 +162,14 @@ function AdminDashboardPage() {
         imageData: result.dataUrl,
         imageUrl: "",
       }));
-      setImageStatus({
+      pushToast({
         type: "success",
-        message: `Saved ${Math.round(result.width)}×${Math.round(
+        message: `Image optimized: ${Math.round(result.width)}×${Math.round(
           result.height,
         )} at ${Math.round(result.size / 1024)}KB.`,
       });
     } catch (error) {
-      setImageStatus({
+      pushToast({
         type: "error",
         message: error instanceof Error ? error.message : "Upload failed.",
       });
@@ -182,12 +192,16 @@ function AdminDashboardPage() {
     };
     if (!nextItem.name || !nextItem.price || !nextItem.image) {
       setIsSubmitting(false);
+      pushToast({
+        type: "error",
+        message: "Add a name, price, and image before publishing.",
+      });
       return;
     }
     setCatalog(addCatalogItem(nextItem));
     setForm(initialForm);
-    setImageStatus({ type: "idle", message: "" });
     setIsSubmitting(false);
+    pushToast({ type: "success", message: "Product published." });
   };
 
   const handleRemove = (id) => {
@@ -226,7 +240,6 @@ function AdminDashboardPage() {
 
   const handleSettingChange = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
-    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const normalizeNumberInput = (value) => (value === "" ? "" : Number(value));
@@ -240,7 +253,6 @@ function AdminDashboardPage() {
           : option,
       ),
     }));
-    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateConsultationPrice = (id, price) => {
@@ -252,7 +264,6 @@ function AdminDashboardPage() {
           : option,
       ),
     }));
-    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateClassPrice = (id, price) => {
@@ -264,7 +275,6 @@ function AdminDashboardPage() {
           : option,
       ),
     }));
-    setSettingsStatus({ type: "idle", message: "" });
   };
 
   const updateShippingPrice = (id, price) => {
@@ -274,17 +284,66 @@ function AdminDashboardPage() {
         zone.id === id ? { ...zone, price: normalizeNumberInput(price) } : zone,
       ),
     }));
-    setSettingsStatus({ type: "idle", message: "" });
   };
-
-  const isSettingsDirty = useMemo(
-    () => JSON.stringify(settings) !== JSON.stringify(savedSettings),
-    [settings, savedSettings],
+  const savedBusinessFields = useMemo(
+    () => ({
+      whatsappNumber: savedSettings.whatsappNumber,
+      bankName: savedSettings.bankName,
+      accountName: savedSettings.accountName,
+      accountNumber: savedSettings.accountNumber,
+      inventoryAlertThreshold: savedSettings.inventoryAlertThreshold,
+    }),
+    [savedSettings],
   );
 
-  const handleSaveSettings = () => {
+  const currentBusinessFields = useMemo(
+    () => ({
+      whatsappNumber: settings.whatsappNumber,
+      bankName: settings.bankName,
+      accountName: settings.accountName,
+      accountNumber: settings.accountNumber,
+      inventoryAlertThreshold: settings.inventoryAlertThreshold,
+    }),
+    [settings],
+  );
+
+  const isBusinessDirty = useMemo(
+    () =>
+      JSON.stringify(currentBusinessFields) !==
+      JSON.stringify(savedBusinessFields),
+    [currentBusinessFields, savedBusinessFields],
+  );
+
+  const savedPricingFields = useMemo(
+    () => ({
+      inspectionOptions: savedSettings.inspectionOptions,
+      consultationOptions: savedSettings.consultationOptions,
+      classOptions: savedSettings.classOptions,
+      shippingZones: savedSettings.shippingZones,
+    }),
+    [savedSettings],
+  );
+
+  const currentPricingFields = useMemo(
+    () => ({
+      inspectionOptions: settings.inspectionOptions,
+      consultationOptions: settings.consultationOptions,
+      classOptions: settings.classOptions,
+      shippingZones: settings.shippingZones,
+    }),
+    [settings],
+  );
+
+  const isPricingDirty = useMemo(
+    () =>
+      JSON.stringify(currentPricingFields) !==
+      JSON.stringify(savedPricingFields),
+    [currentPricingFields, savedPricingFields],
+  );
+
+  const handleSaveBusinessSettings = () => {
     if (hasSettingsErrors) {
-      setSettingsStatus({
+      pushToast({
         type: "error",
         message: "Fix the highlighted fields before saving.",
       });
@@ -292,7 +351,21 @@ function AdminDashboardPage() {
     }
     saveSettings(settings);
     setSavedSettings(settings);
-    setSettingsStatus({ type: "success", message: "Settings saved." });
+    pushToast({ type: "success", message: "Business settings saved." });
+  };
+
+  const handleSavePricingSettings = () => {
+    saveSettings(settings);
+    setSavedSettings(settings);
+    pushToast({ type: "success", message: "Pricing settings saved." });
+  };
+
+  const resetSettingsToDefaults = () => {
+    setSettings(defaultSettings);
+    pushToast({
+      type: "success",
+      message: "Defaults restored. Save to apply.",
+    });
   };
 
   useEffect(() => {
@@ -561,6 +634,21 @@ function AdminDashboardPage() {
     });
   }, [customers, orders]);
 
+  const totalRevenue = useMemo(
+    () => orders.reduce((sum, order) => sum + Number(order.total || 0), 0),
+    [orders],
+  );
+
+  const pendingOrdersCount = useMemo(
+    () => orders.filter((order) => order.status === "Pending").length,
+    [orders],
+  );
+
+  const pendingRequestsCount = useMemo(
+    () => requests.filter((request) => request.status === "Pending").length,
+    [requests],
+  );
+
   const lowInventory = useMemo(() => {
     const threshold = Number(settings.inventoryAlertThreshold || 0);
     if (!threshold) return [];
@@ -598,958 +686,1230 @@ function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-porcelain text-obsidian">
       <Navbar />
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-24 pt-32">
-        <div className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.4em] text-ash">Admin</p>
-          <h1 className="text-4xl font-semibold sm:text-5xl">
-            Manage catalog, pricing, and inventory in one place.
-          </h1>
-        </div>
-
-        {isSettingsDirty ? (
-          <div className="rounded-3xl border border-ash/30 bg-linen p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-obsidian">
-                  Save all changes
-                </p>
-                <p className="text-xs text-ash">
-                  Apply updates across business settings and service pricing.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleSaveSettings}
-                disabled={hasSettingsErrors}
-                className="rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Save All Changes
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-ash/30 bg-linen p-6">
-              <h2 className="text-xl font-semibold text-obsidian">
-                Product Catalog
-              </h2>
-              <p className="mt-2 text-sm text-ash">
-                Your store pulls directly from these admin uploads.
+      <div className="relative">
+        <div className="mx-auto w-full max-w-6xl px-6 pb-24 pt-28">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.4em] text-ash">
+                Admin Studio
               </p>
-              <div className="mt-6 grid gap-4">
-                {catalog.length === 0 ? (
-                  <div className="rounded-2xl border border-ash/30 bg-porcelain p-6 text-sm text-ash">
-                    Upload your first product to activate the signature store.
-                  </div>
-                ) : (
-                  catalog.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-ash/30 bg-porcelain p-5 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-16 w-16 rounded-2xl object-cover"
-                        />
-                        <div>
-                          <p className="text-sm font-semibold text-obsidian">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-ash">{item.category}</p>
-                          <p className="text-xs text-ash">
-                            ₦{item.price.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleRemove(item.id)}
-                        className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
-          >
-            <h2 className="text-xl font-semibold text-obsidian">
-              Upload Product
-            </h2>
-            <p className="mt-2 text-sm text-ash">
-              Add new items with images, pricing, and inventory counts.
-            </p>
-            <div className="mt-6 space-y-4">
-              <input
-                value={form.name}
-                onChange={(event) => handleChange("name", event.target.value)}
-                type="text"
-                placeholder="Product name"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              <input
-                value={form.price}
-                onChange={(event) => handleChange("price", event.target.value)}
-                type="number"
-                placeholder="Price"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              <select
-                value={form.category}
-                onChange={(event) =>
-                  handleChange("category", event.target.value)
-                }
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-              <div className="space-y-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageFile}
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                />
-                <p className="text-xs text-ash">
-                  Auto-resized to max 1600px and optimized to ~1.2MB.
-                </p>
-                {imageStatus.message ? (
-                  <p
-                    className={`text-xs ${
-                      imageStatus.type === "error" ? "text-red-500" : "text-ash"
-                    }`}
-                  >
-                    {imageStatus.message}
-                  </p>
-                ) : null}
-                {form.imageData ? (
-                  <img
-                    src={form.imageData}
-                    alt="Upload preview"
-                    className="h-20 w-20 rounded-2xl object-cover"
-                  />
-                ) : null}
-              </div>
-              <input
-                value={form.imageUrl}
-                onChange={(event) =>
-                  handleChange("imageUrl", event.target.value)
-                }
-                type="url"
-                placeholder="Image URL (optional)"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              <textarea
-                value={form.description}
-                onChange={(event) =>
-                  handleChange("description", event.target.value)
-                }
-                rows="4"
-                placeholder="Short description"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              <input
-                value={form.inventory}
-                onChange={(event) =>
-                  handleChange("inventory", event.target.value)
-                }
-                type="number"
-                placeholder="Inventory count"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
+              <h1 className="text-4xl font-semibold sm:text-5xl">
+                Dashboard overview
+              </h1>
+              <p className="max-w-2xl text-sm text-ash sm:text-base">
+                Manage catalog, pricing, orders, and customer touchpoints.
+              </p>
             </div>
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+              type="button"
+              onClick={() => setIsMenuOpen(true)}
+              className="rounded-full border border-ash px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition lg:hidden"
             >
-              Publish Product
+              Menu
             </button>
-          </form>
-        </div>
-
-        <div className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-ash/30 bg-linen p-6">
-            <h2 className="text-xl font-semibold text-obsidian">
-              Business Settings
-            </h2>
-            <p className="mt-2 text-sm text-ash">
-              Update payments, WhatsApp routing, and service pricing.
-            </p>
-            <div className="mt-6 grid gap-4">
-              <input
-                value={settings.whatsappNumber}
-                onChange={(event) =>
-                  handleSettingChange("whatsappNumber", event.target.value)
-                }
-                type="text"
-                placeholder="WhatsApp number"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              {settingsErrors.whatsappNumber && (
-                <p className="text-xs text-red-600">
-                  {settingsErrors.whatsappNumber}
-                </p>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <input
-                  value={settings.bankName}
-                  onChange={(event) =>
-                    handleSettingChange("bankName", event.target.value)
-                  }
-                  type="text"
-                  placeholder="Bank name"
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                />
-                <input
-                  value={settings.accountName}
-                  onChange={(event) =>
-                    handleSettingChange("accountName", event.target.value)
-                  }
-                  type="text"
-                  placeholder="Account name"
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                />
-              </div>
-              {settingsErrors.bankName && (
-                <p className="text-xs text-red-600">
-                  {settingsErrors.bankName}
-                </p>
-              )}
-              {settingsErrors.accountName && (
-                <p className="text-xs text-red-600">
-                  {settingsErrors.accountName}
-                </p>
-              )}
-              <input
-                value={settings.accountNumber}
-                onChange={(event) =>
-                  handleSettingChange("accountNumber", event.target.value)
-                }
-                type="text"
-                placeholder="Account number"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              {settingsErrors.accountNumber && (
-                <p className="text-xs text-red-600">
-                  {settingsErrors.accountNumber}
-                </p>
-              )}
-              <input
-                value={settings.inventoryAlertThreshold}
-                onChange={(event) =>
-                  handleSettingChange(
-                    "inventoryAlertThreshold",
-                    event.target.value,
-                  )
-                }
-                type="number"
-                min="0"
-                placeholder="Inventory alert threshold"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              {hasSettingsErrors && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
-                  Complete the required fields to activate payments and WhatsApp
-                  routing.
-                </div>
-              )}
-              {settingsStatus.message && (
-                <div
-                  className={`rounded-2xl border px-4 py-3 text-xs ${
-                    settingsStatus.type === "error"
-                      ? "border-red-200 bg-red-50 text-red-700"
-                      : settingsStatus.type === "success"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-ash/30 bg-linen text-ash"
-                  }`}
-                >
-                  {settingsStatus.message}
-                </div>
-              )}
-            </div>
           </div>
 
-          <div className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]">
-            <h3 className="text-lg font-semibold text-obsidian">
-              Service Pricing
-            </h3>
-            <div className="mt-4 space-y-6">
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Inspection Pricing
+          <div className="mt-10 flex flex-col gap-10 lg:flex-row">
+            <aside className="hidden w-56 shrink-0 lg:block">
+              <div className="sticky top-28 space-y-4">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-ash">
+                  Navigate
                 </p>
-                {settings.inspectionOptions.map((option) => (
-                  <div
-                    key={option.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
-                  >
-                    <div className="text-sm font-semibold text-obsidian">
-                      {option.title}
-                    </div>
-                    <input
-                      value={option.redirectOnly ? "" : option.price}
-                      onChange={(event) =>
-                        updateInspectionPrice(option.id, event.target.value)
-                      }
-                      type="number"
-                      disabled={option.redirectOnly}
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none disabled:opacity-60"
-                    />
-                  </div>
-                ))}
+                <nav className="space-y-2 text-xs font-semibold uppercase tracking-[0.2em] text-ash">
+                  {navSections.map((section) => (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      className="block rounded-full border border-ash/30 bg-porcelain px-4 py-2 text-[11px] text-obsidian transition hover:border-ash"
+                    >
+                      {section.label}
+                    </a>
+                  ))}
+                </nav>
               </div>
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Consultation Pricing
-                </p>
-                {settings.consultationOptions.map((option) => (
-                  <div
-                    key={option.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
-                  >
-                    <div className="text-sm font-semibold text-obsidian">
-                      {option.title}
-                    </div>
-                    <input
-                      value={option.price}
-                      onChange={(event) =>
-                        updateConsultationPrice(option.id, event.target.value)
-                      }
-                      type="number"
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
+            </aside>
+
+            <main className="flex-1 space-y-10">
+              <section id="overview" className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                      Total Revenue
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-obsidian">
+                      ₦{Number(totalRevenue || 0).toLocaleString()}
+                    </p>
+                    <p className="mt-2 text-xs text-ash">
+                      {orders.length} total orders
+                    </p>
                   </div>
-                ))}
-              </div>
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Class Pricing
-                </p>
-                {(settings.classOptions || []).map((option) => (
-                  <div
-                    key={option.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
-                  >
-                    <div className="text-sm font-semibold text-obsidian">
-                      {option.title}
-                    </div>
-                    <input
-                      value={option.price}
-                      onChange={(event) =>
-                        updateClassPrice(option.id, event.target.value)
-                      }
-                      type="number"
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
+                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                      Orders
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-obsidian">
+                      {orders.length}
+                    </p>
+                    <p className="mt-2 text-xs text-ash">
+                      {pendingOrdersCount} pending
+                    </p>
                   </div>
-                ))}
-              </div>
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Shipping Pricing
-                </p>
-                {settings.shippingZones.map((zone) => (
-                  <div
-                    key={zone.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
-                  >
-                    <div className="text-sm font-semibold text-obsidian">
-                      {zone.label}
-                    </div>
-                    <input
-                      value={zone.price}
-                      onChange={(event) =>
-                        updateShippingPrice(zone.id, event.target.value)
-                      }
-                      type="number"
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
+                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                      Requests
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-obsidian">
+                      {requests.length}
+                    </p>
+                    <p className="mt-2 text-xs text-ash">
+                      {pendingRequestsCount} pending
+                    </p>
                   </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSettings(defaultSettings);
-                  setSettingsStatus({ type: "idle", message: "" });
-                }}
-                className="w-full rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                      Conversion
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-obsidian">
+                      {conversionRate}%
+                    </p>
+                    <p className="mt-2 text-xs text-ash">
+                      {analytics.storeViews || 0} store views
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-3xl border border-ash/30 bg-linen p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                      Low Inventory
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-obsidian">
+                      {lowInventory.length}
+                    </p>
+                    <p className="mt-2 text-xs text-ash">
+                      Items below threshold
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-ash/30 bg-linen p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                      Customers
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-obsidian">
+                      {customerStats.length}
+                    </p>
+                    <p className="mt-2 text-xs text-ash">Saved profiles</p>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                id="catalog"
+                className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]"
               >
-                Reset to Default Settings
-              </button>
-            </div>
-          </div>
-        </div>
+                <div className="rounded-3xl border border-ash/30 bg-linen p-6">
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Product Catalog
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Your store pulls directly from these admin uploads.
+                  </p>
+                  <div className="mt-6 grid gap-4">
+                    {catalog.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-porcelain p-6 text-sm text-ash">
+                        Upload your first product to activate the signature
+                        store.
+                      </div>
+                    ) : (
+                      catalog.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex flex-col gap-4 rounded-2xl border border-ash/30 bg-porcelain p-5 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="h-16 w-16 rounded-2xl object-cover"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-obsidian">
+                                {item.name}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {item.category}
+                              </p>
+                              <p className="text-xs text-ash">
+                                ₦{item.price.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemove(item.id)}
+                            className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
 
-        <div className="rounded-3xl border border-ash/30 bg-porcelain p-6">
-          <h2 className="text-xl font-semibold text-obsidian">Orders</h2>
-          <p className="mt-2 text-sm text-ash">
-            Track every order, update statuses, and restock on cancellation.
-          </p>
-          <div className="mt-6 grid gap-4">
-            {sortedOrders.length === 0 ? (
-              <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
-                Orders will appear here after checkout.
-              </div>
-            ) : (
-              sortedOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="rounded-2xl border border-ash/30 bg-linen p-5"
+                <form
+                  id="upload"
+                  onSubmit={handleSubmit}
+                  className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        {order.label || order.number || order.id}
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Upload Product
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Add new items with images, pricing, and inventory counts.
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    <input
+                      value={form.name}
+                      onChange={(event) =>
+                        handleChange("name", event.target.value)
+                      }
+                      type="text"
+                      placeholder="Product name"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    <input
+                      value={form.price}
+                      onChange={(event) =>
+                        handleChange("price", event.target.value)
+                      }
+                      type="number"
+                      placeholder="Price"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    <select
+                      value={form.category}
+                      onChange={(event) =>
+                        handleChange("category", event.target.value)
+                      }
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    >
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="space-y-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageFile}
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      />
+                      <p className="text-xs text-ash">
+                        Auto-resized to max 1600px and optimized to ~1.2MB.
                       </p>
-                      <p className="mt-2 text-sm text-ash">
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleString()
-                          : ""}
-                      </p>
+                      {form.imageData ? (
+                        <img
+                          src={form.imageData}
+                          alt="Upload preview"
+                          className="h-20 w-20 rounded-2xl object-cover"
+                        />
+                      ) : null}
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                      <select
-                        value={order.status || "Pending"}
+                    <input
+                      value={form.imageUrl}
+                      onChange={(event) =>
+                        handleChange("imageUrl", event.target.value)
+                      }
+                      type="url"
+                      placeholder="Image URL (optional)"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    <textarea
+                      value={form.description}
+                      onChange={(event) =>
+                        handleChange("description", event.target.value)
+                      }
+                      rows="4"
+                      placeholder="Short description"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    <input
+                      value={form.inventory}
+                      onChange={(event) =>
+                        handleChange("inventory", event.target.value)
+                      }
+                      type="number"
+                      placeholder="Inventory count"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Publish Product
+                  </button>
+                </form>
+              </section>
+
+              <section className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+                <div
+                  id="settings"
+                  className="rounded-3xl border border-ash/30 bg-linen p-6"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Business Settings
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Update payments, WhatsApp routing, and service pricing.
+                  </p>
+                  <div className="mt-6 grid gap-4">
+                    <input
+                      value={settings.whatsappNumber}
+                      onChange={(event) =>
+                        handleSettingChange(
+                          "whatsappNumber",
+                          event.target.value,
+                        )
+                      }
+                      type="text"
+                      placeholder="WhatsApp number"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    {settingsErrors.whatsappNumber && (
+                      <p className="text-xs text-red-600">
+                        {settingsErrors.whatsappNumber}
+                      </p>
+                    )}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <input
+                        value={settings.bankName}
                         onChange={(event) =>
-                          handleOrderStatusChange(order.id, event.target.value)
+                          handleSettingChange("bankName", event.target.value)
                         }
-                        className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
-                      >
-                        {orderStatusOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
+                        type="text"
+                        placeholder="Bank name"
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      />
+                      <input
+                        value={settings.accountName}
+                        onChange={(event) =>
+                          handleSettingChange("accountName", event.target.value)
+                        }
+                        type="text"
+                        placeholder="Account name"
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      />
+                    </div>
+                    {settingsErrors.bankName && (
+                      <p className="text-xs text-red-600">
+                        {settingsErrors.bankName}
+                      </p>
+                    )}
+                    {settingsErrors.accountName && (
+                      <p className="text-xs text-red-600">
+                        {settingsErrors.accountName}
+                      </p>
+                    )}
+                    <input
+                      value={settings.accountNumber}
+                      onChange={(event) =>
+                        handleSettingChange("accountNumber", event.target.value)
+                      }
+                      type="text"
+                      placeholder="Account number"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    {settingsErrors.accountNumber && (
+                      <p className="text-xs text-red-600">
+                        {settingsErrors.accountNumber}
+                      </p>
+                    )}
+                    <input
+                      value={settings.inventoryAlertThreshold}
+                      onChange={(event) =>
+                        handleSettingChange(
+                          "inventoryAlertThreshold",
+                          event.target.value,
+                        )
+                      }
+                      type="number"
+                      min="0"
+                      placeholder="Inventory alert threshold"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    {hasSettingsErrors && (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                        Complete the required fields to activate payments and
+                        WhatsApp routing.
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveBusinessSettings}
+                    disabled={!isBusinessDirty || hasSettingsErrors}
+                    className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Save Business Settings
+                  </button>
+                </div>
+
+                <div
+                  id="pricing"
+                  className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
+                >
+                  <h3 className="text-lg font-semibold text-obsidian">
+                    Service Pricing
+                  </h3>
+                  <div className="mt-4 space-y-6">
+                    <div className="space-y-3">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Inspection Pricing
+                      </p>
+                      {settings.inspectionOptions.map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
+                        >
+                          <div className="text-sm font-semibold text-obsidian">
+                            {option.title}
+                          </div>
+                          <input
+                            value={option.redirectOnly ? "" : option.price}
+                            onChange={(event) =>
+                              updateInspectionPrice(
+                                option.id,
+                                event.target.value,
+                              )
+                            }
+                            type="number"
+                            disabled={option.redirectOnly}
+                            className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none disabled:opacity-60"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Consultation Pricing
+                      </p>
+                      {settings.consultationOptions.map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
+                        >
+                          <div className="text-sm font-semibold text-obsidian">
+                            {option.title}
+                          </div>
+                          <input
+                            value={option.price}
+                            onChange={(event) =>
+                              updateConsultationPrice(
+                                option.id,
+                                event.target.value,
+                              )
+                            }
+                            type="number"
+                            className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Class Pricing
+                      </p>
+                      {(settings.classOptions || []).map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
+                        >
+                          <div className="text-sm font-semibold text-obsidian">
+                            {option.title}
+                          </div>
+                          <input
+                            value={option.price}
+                            onChange={(event) =>
+                              updateClassPrice(option.id, event.target.value)
+                            }
+                            type="number"
+                            className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Shipping Pricing
+                      </p>
+                      {settings.shippingZones.map((zone) => (
+                        <div
+                          key={zone.id}
+                          className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4"
+                        >
+                          <div className="text-sm font-semibold text-obsidian">
+                            {zone.label}
+                          </div>
+                          <input
+                            value={zone.price}
+                            onChange={(event) =>
+                              updateShippingPrice(zone.id, event.target.value)
+                            }
+                            type="number"
+                            className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          handleOrderStatusChange(order.id, "Cancelled")
-                        }
-                        disabled={order.status === "Cancelled"}
-                        className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={handleSavePricingSettings}
+                        disabled={!isPricingDirty}
+                        className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        Cancel & Restock
+                        Save Pricing
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleCopyInvoice(order)}
-                        className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                        onClick={resetSettingsToDefaults}
+                        className="w-full rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                       >
-                        Copy Invoice
+                        Reset Defaults
                       </button>
                     </div>
                   </div>
-                  <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
-                    <div>
+                </div>
+              </section>
+
+              <section
+                id="orders"
+                className="rounded-3xl border border-ash/30 bg-porcelain p-6"
+              >
+                <h2 className="text-xl font-semibold text-obsidian">Orders</h2>
+                <p className="mt-2 text-sm text-ash">
+                  Track every order, update statuses, and restock on
+                  cancellation.
+                </p>
+                <div className="mt-6 grid gap-4">
+                  {sortedOrders.length === 0 ? (
+                    <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
+                      Orders will appear here after checkout.
+                    </div>
+                  ) : (
+                    sortedOrders.map((order) => {
+                      const orderStatus =
+                        pendingOrderStatus[order.id] ||
+                        order.status ||
+                        "Pending";
+                      return (
+                        <div
+                          key={order.id}
+                          className="rounded-2xl border border-ash/30 bg-linen p-5"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                {order.label || order.number || order.id}
+                              </p>
+                              <p className="mt-2 text-sm text-ash">
+                                {order.createdAt
+                                  ? new Date(order.createdAt).toLocaleString()
+                                  : ""}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              <select
+                                value={orderStatus}
+                                onChange={async (event) => {
+                                  const nextStatus = event.target.value;
+                                  if (nextStatus === order.status) {
+                                    setPendingOrderStatus((prev) => {
+                                      const next = { ...prev };
+                                      delete next[order.id];
+                                      return next;
+                                    });
+                                    return;
+                                  }
+                                  setPendingOrderStatus((prev) => ({
+                                    ...prev,
+                                    [order.id]: nextStatus,
+                                  }));
+                                  await handleOrderStatusChange(
+                                    order.id,
+                                    nextStatus,
+                                  );
+                                  setPendingOrderStatus((prev) => {
+                                    const next = { ...prev };
+                                    delete next[order.id];
+                                    return next;
+                                  });
+                                  pushToast({
+                                    type: "success",
+                                    message: "Order status saved.",
+                                  });
+                                }}
+                                className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                              >
+                                {orderStatusOptions.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await handleOrderStatusChange(
+                                    order.id,
+                                    orderStatus,
+                                  );
+                                  setPendingOrderStatus((prev) => {
+                                    const next = { ...prev };
+                                    delete next[order.id];
+                                    return next;
+                                  });
+                                  pushToast({
+                                    type: "success",
+                                    message: "Order status saved.",
+                                  });
+                                }}
+                                disabled={!pendingOrderStatus[order.id]}
+                                className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                              >
+                                Save Status
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await handleOrderStatusChange(
+                                    order.id,
+                                    "Cancelled",
+                                  );
+                                  pushToast({
+                                    type: "success",
+                                    message: "Order cancelled and restocked.",
+                                  });
+                                }}
+                                disabled={order.status === "Cancelled"}
+                                className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Cancel & Restock
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyInvoice(order)}
+                                className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                              >
+                                Copy Invoice
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                Customer
+                              </p>
+                              <p className="mt-2 text-sm text-obsidian">
+                                {order.customer?.name || "Guest"}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {order.customer?.email || ""}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {order.customer?.phone || ""}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {[
+                                  order.customer?.address,
+                                  order.customer?.city,
+                                  order.customer?.state,
+                                ]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                Totals
+                              </p>
+                              <p className="mt-2 text-sm text-obsidian">
+                                ₦{Number(order.total || 0).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-ash">
+                                Subtotal: ₦
+                                {Number(order.subtotal || 0).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-ash">
+                                Shipping: ₦
+                                {Number(order.shipping || 0).toLocaleString()}
+                              </p>
+                              {order.discountAmount ? (
+                                <p className="text-xs text-ash">
+                                  Discount: -₦
+                                  {Number(
+                                    order.discountAmount,
+                                  ).toLocaleString()}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="mt-4 space-y-2 text-sm text-ash">
+                            <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                              Items
+                            </p>
+                            {(order.items || []).map((item) => (
+                              <div
+                                key={`${order.id}-${item.id}`}
+                                className="flex items-center justify-between rounded-2xl border border-ash/30 bg-porcelain px-4 py-2"
+                              >
+                                <span>
+                                  {item.name} × {item.quantity}
+                                </span>
+                                <span>
+                                  ₦
+                                  {(
+                                    Number(item.price || 0) *
+                                    Number(item.quantity || 0)
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-3 text-xs text-ash">
+                            {order.deliveryDate ? (
+                              <span>Delivery date: {order.deliveryDate}</span>
+                            ) : null}
+                            {order.deliveryTime ? (
+                              <span>Delivery time: {order.deliveryTime}</span>
+                            ) : null}
+                            {order.proofUrl ? (
+                              <a
+                                href={order.proofUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline"
+                              >
+                                View payment proof
+                              </a>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              <section
+                id="requests"
+                className="rounded-3xl border border-ash/30 bg-porcelain p-6"
+              >
+                <h2 className="text-xl font-semibold text-obsidian">
+                  Requests
+                </h2>
+                <p className="mt-2 text-sm text-ash">
+                  Review consultation, class, and inspection submissions.
+                </p>
+                <div className="mt-6 grid gap-4">
+                  {sortedRequests.length === 0 ? (
+                    <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
+                      Requests will appear here after form submissions.
+                    </div>
+                  ) : (
+                    sortedRequests.map((request) => {
+                      const requestStatus =
+                        pendingRequestStatus[request.id] ||
+                        request.status ||
+                        "Pending";
+                      return (
+                        <div
+                          key={request.id}
+                          className="rounded-2xl border border-ash/30 bg-linen p-5"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                {request.requestRef || request.id}
+                              </p>
+                              <p className="mt-2 text-sm text-ash">
+                                {request.createdAt
+                                  ? new Date(request.createdAt).toLocaleString()
+                                  : ""}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              <select
+                                value={requestStatus}
+                                onChange={(event) =>
+                                  setPendingRequestStatus((prev) => ({
+                                    ...prev,
+                                    [request.id]: event.target.value,
+                                  }))
+                                }
+                                className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                              >
+                                {requestStatusOptions.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await handleRequestStatusChange(
+                                    request.id,
+                                    requestStatus,
+                                  );
+                                  setPendingRequestStatus((prev) => {
+                                    const next = { ...prev };
+                                    delete next[request.id];
+                                    return next;
+                                  });
+                                  pushToast({
+                                    type: "success",
+                                    message: "Request status saved.",
+                                  });
+                                }}
+                                className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                              >
+                                Save Status
+                              </button>
+                              {request.proofUrl ? (
+                                <a
+                                  href={request.proofUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                >
+                                  View Proof
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                Client
+                              </p>
+                              <p className="mt-2 text-sm text-obsidian">
+                                {request.customer?.name || "Guest"}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {request.customer?.email || ""}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {request.customer?.phone || ""}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {[
+                                  request.customer?.address,
+                                  request.customer?.city,
+                                  request.customer?.state,
+                                ]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                Request
+                              </p>
+                              <p className="mt-2 text-sm text-obsidian">
+                                {getRequestTypeLabel(request.type)}
+                              </p>
+                              <p className="text-xs text-ash">
+                                {request.optionTitle || ""}
+                              </p>
+                              <p className="text-xs text-ash">
+                                Total: ₦
+                                {Number(request.price || 0).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          {request.notes ? (
+                            <div className="mt-4 text-sm text-ash">
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                Notes
+                              </p>
+                              <p className="mt-2">{request.notes}</p>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+
+              <section className="grid gap-8 lg:grid-cols-[1fr_1fr]">
+                <div
+                  id="customers"
+                  className="rounded-3xl border border-ash/30 bg-linen p-6"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Customers
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Saved profiles from signups and checkouts.
+                  </p>
+                  <div className="mt-6 grid gap-4">
+                    {customerStats.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-porcelain p-6 text-sm text-ash">
+                        Customers will appear here after signup or checkout.
+                      </div>
+                    ) : (
+                      customerStats.map((customer) => (
+                        <div
+                          key={customer.email || customer.name}
+                          className="rounded-2xl border border-ash/30 bg-porcelain p-5"
+                        >
+                          <p className="text-sm font-semibold text-obsidian">
+                            {customer.name || "Guest"}
+                          </p>
+                          <div className="mt-2 text-xs text-ash">
+                            <p>{customer.email}</p>
+                            <p>{customer.phone}</p>
+                            <p>
+                              {[customer.address, customer.city, customer.state]
+                                .filter(Boolean)
+                                .join(", ")}
+                            </p>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-4 text-xs text-ash">
+                            <span>Orders: {customer.orderCount}</span>
+                            <span>
+                              Spend: ₦
+                              {Number(customer.totalSpend).toLocaleString()}
+                            </span>
+                            {customer.lastOrderAt ? (
+                              <span>
+                                Last order:{" "}
+                                {new Date(
+                                  customer.lastOrderAt,
+                                ).toLocaleDateString()}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  id="discounts"
+                  className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Discounts
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Create codes for fixed or percentage promotions.
+                  </p>
+                  <form
+                    onSubmit={handleDiscountSubmit}
+                    className="mt-6 space-y-4"
+                  >
+                    <input
+                      value={discountForm.code}
+                      onChange={(event) =>
+                        setDiscountForm((prev) => ({
+                          ...prev,
+                          code: event.target.value,
+                        }))
+                      }
+                      type="text"
+                      placeholder="Code"
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <select
+                        value={discountForm.type}
+                        onChange={(event) =>
+                          setDiscountForm((prev) => ({
+                            ...prev,
+                            type: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      >
+                        <option value="percent">Percent</option>
+                        <option value="fixed">Fixed</option>
+                      </select>
+                      <input
+                        value={discountForm.value}
+                        onChange={(event) =>
+                          setDiscountForm((prev) => ({
+                            ...prev,
+                            value: event.target.value,
+                          }))
+                        }
+                        type="number"
+                        placeholder="Value"
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <input
+                        value={discountForm.minSubtotal}
+                        onChange={(event) =>
+                          setDiscountForm((prev) => ({
+                            ...prev,
+                            minSubtotal: event.target.value,
+                          }))
+                        }
+                        type="number"
+                        placeholder="Minimum subtotal"
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      />
+                      <input
+                        value={discountForm.expiresAt}
+                        onChange={(event) =>
+                          setDiscountForm((prev) => ({
+                            ...prev,
+                            expiresAt: event.target.value,
+                          }))
+                        }
+                        type="date"
+                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-ash">
+                      <input
+                        checked={discountForm.active}
+                        onChange={(event) =>
+                          setDiscountForm((prev) => ({
+                            ...prev,
+                            active: event.target.checked,
+                          }))
+                        }
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-ash"
+                      />
+                      Active
+                    </label>
+                    <button
+                      type="submit"
+                      className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                    >
+                      Save Discount
+                    </button>
+                  </form>
+                  <div className="mt-6 space-y-3">
+                    {discounts.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-linen p-4 text-sm text-ash">
+                        No discounts added yet.
+                      </div>
+                    ) : (
+                      discounts.map((discount) => (
+                        <div
+                          key={discount.code}
+                          className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4 text-sm text-ash"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs uppercase tracking-[0.3em] text-ash">
+                              {discount.code}
+                            </span>
+                            <span className="text-xs text-ash">
+                              {discount.active ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-obsidian">
+                            {discount.type === "percent"
+                              ? `${discount.value}% off`
+                              : `₦${Number(discount.value).toLocaleString()} off`}
+                          </p>
+                          <div className="flex flex-wrap gap-3 text-xs text-ash">
+                            {discount.minSubtotal ? (
+                              <span>
+                                Min ₦
+                                {Number(discount.minSubtotal).toLocaleString()}
+                              </span>
+                            ) : null}
+                            {discount.expiresAt ? (
+                              <span>
+                                Expires{" "}
+                                {new Date(
+                                  discount.expiresAt,
+                                ).toLocaleDateString()}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleToggleDiscount(discount.code)
+                              }
+                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                            >
+                              {discount.active ? "Disable" : "Enable"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveDiscount(discount.code)
+                              }
+                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className="grid gap-8 lg:grid-cols-[1fr_1fr]">
+                <div
+                  id="analytics"
+                  className="rounded-3xl border border-ash/30 bg-linen p-6"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Analytics
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Track store performance and conversion.
+                  </p>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
                       <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        Customer
+                        Store Views
                       </p>
-                      <p className="mt-2 text-sm text-obsidian">
-                        {order.customer?.name || "Guest"}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {order.customer?.email || ""}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {order.customer?.phone || ""}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {[
-                          order.customer?.address,
-                          order.customer?.city,
-                          order.customer?.state,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
+                      <p className="mt-2 text-lg font-semibold text-obsidian">
+                        {analytics.storeViews || 0}
                       </p>
                     </div>
-                    <div>
+                    <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
                       <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        Totals
+                        Cart Adds
                       </p>
-                      <p className="mt-2 text-sm text-obsidian">
-                        ₦{Number(order.total || 0).toLocaleString()}
+                      <p className="mt-2 text-lg font-semibold text-obsidian">
+                        {analytics.cartAdds || 0}
                       </p>
-                      <p className="text-xs text-ash">
-                        Subtotal: ₦
-                        {Number(order.subtotal || 0).toLocaleString()}
+                    </div>
+                    <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Checkouts
                       </p>
-                      <p className="text-xs text-ash">
-                        Shipping: ₦
-                        {Number(order.shipping || 0).toLocaleString()}
+                      <p className="mt-2 text-lg font-semibold text-obsidian">
+                        {analytics.checkouts || 0}
                       </p>
-                      {order.discountAmount ? (
-                        <p className="text-xs text-ash">
-                          Discount: -₦
-                          {Number(order.discountAmount).toLocaleString()}
+                    </div>
+                    <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Conversion
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-obsidian">
+                        {conversionRate}%
+                      </p>
+                      {analytics.lastCheckoutAt ? (
+                        <p className="mt-1 text-xs text-ash">
+                          Last checkout{" "}
+                          {new Date(
+                            analytics.lastCheckoutAt,
+                          ).toLocaleDateString()}
                         </p>
                       ) : null}
                     </div>
                   </div>
-                  <div className="mt-4 space-y-2 text-sm text-ash">
+                  <div className="mt-6 space-y-2 text-sm text-ash">
                     <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Items
+                      Top Products
                     </p>
-                    {(order.items || []).map((item) => (
-                      <div
-                        key={`${order.id}-${item.id}`}
-                        className="flex items-center justify-between rounded-2xl border border-ash/30 bg-porcelain px-4 py-2"
-                      >
-                        <span>
-                          {item.name} × {item.quantity}
-                        </span>
-                        <span>
-                          ₦
-                          {(
-                            Number(item.price || 0) * Number(item.quantity || 0)
-                          ).toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-3 text-xs text-ash">
-                    {order.deliveryDate ? (
-                      <span>Delivery date: {order.deliveryDate}</span>
-                    ) : null}
-                    {order.deliveryTime ? (
-                      <span>Delivery time: {order.deliveryTime}</span>
-                    ) : null}
-                    {order.proofUrl ? (
-                      <a
-                        href={order.proofUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline"
-                      >
-                        View payment proof
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-ash/30 bg-porcelain p-6">
-          <h2 className="text-xl font-semibold text-obsidian">Requests</h2>
-          <p className="mt-2 text-sm text-ash">
-            Review consultation, class, and inspection submissions.
-          </p>
-          <div className="mt-6 grid gap-4">
-            {sortedRequests.length === 0 ? (
-              <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
-                Requests will appear here after form submissions.
-              </div>
-            ) : (
-              sortedRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-2xl border border-ash/30 bg-linen p-5"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        {request.requestRef || request.id}
-                      </p>
-                      <p className="mt-2 text-sm text-ash">
-                        {request.createdAt
-                          ? new Date(request.createdAt).toLocaleString()
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <select
-                        value={request.status || "Pending"}
-                        onChange={(event) =>
-                          handleRequestStatusChange(
-                            request.id,
-                            event.target.value,
-                          )
-                        }
-                        className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
-                      >
-                        {requestStatusOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      {request.proofUrl ? (
-                        <a
-                          href={request.proofUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                    {topProducts.length === 0 ? (
+                      <p>No sales data yet.</p>
+                    ) : (
+                      topProducts.map((product) => (
+                        <div
+                          key={product.name}
+                          className="flex items-center justify-between rounded-2xl border border-ash/30 bg-porcelain px-4 py-2"
                         >
-                          View Proof
-                        </a>
-                      ) : null}
-                    </div>
+                          <span>{product.name}</span>
+                          <span>
+                            ₦{Number(product.revenue).toLocaleString()} ·{" "}
+                            {product.quantity} sold
+                          </span>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        Client
-                      </p>
-                      <p className="mt-2 text-sm text-obsidian">
-                        {request.customer?.name || "Guest"}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {request.customer?.email || ""}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {request.customer?.phone || ""}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {[
-                          request.customer?.address,
-                          request.customer?.city,
-                          request.customer?.state,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        Request
-                      </p>
-                      <p className="mt-2 text-sm text-obsidian">
-                        {getRequestTypeLabel(request.type)}
-                      </p>
-                      <p className="text-xs text-ash">
-                        {request.optionTitle || ""}
-                      </p>
-                      <p className="text-xs text-ash">
-                        Total: ₦{Number(request.price || 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  {request.notes ? (
-                    <div className="mt-4 text-sm text-ash">
-                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                        Notes
-                      </p>
-                      <p className="mt-2">{request.notes}</p>
-                    </div>
-                  ) : null}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-3xl border border-ash/30 bg-linen p-6">
-            <h2 className="text-xl font-semibold text-obsidian">Customers</h2>
-            <p className="mt-2 text-sm text-ash">
-              Saved profiles from signups and checkouts.
-            </p>
-            <div className="mt-6 grid gap-4">
-              {customerStats.length === 0 ? (
-                <div className="rounded-2xl border border-ash/30 bg-porcelain p-6 text-sm text-ash">
-                  Customers will appear here after signup or checkout.
-                </div>
-              ) : (
-                customerStats.map((customer) => (
-                  <div
-                    key={customer.email || customer.name}
-                    className="rounded-2xl border border-ash/30 bg-porcelain p-5"
-                  >
-                    <p className="text-sm font-semibold text-obsidian">
-                      {customer.name || "Guest"}
-                    </p>
-                    <div className="mt-2 text-xs text-ash">
-                      <p>{customer.email}</p>
-                      <p>{customer.phone}</p>
-                      <p>
-                        {[customer.address, customer.city, customer.state]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </p>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-ash">
-                      <span>Orders: {customer.orderCount}</span>
-                      <span>
-                        Spend: ₦{Number(customer.totalSpend).toLocaleString()}
-                      </span>
-                      {customer.lastOrderAt ? (
-                        <span>
-                          Last order:{" "}
-                          {new Date(customer.lastOrderAt).toLocaleDateString()}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]">
-            <h2 className="text-xl font-semibold text-obsidian">Discounts</h2>
-            <p className="mt-2 text-sm text-ash">
-              Create codes for fixed or percentage promotions.
-            </p>
-            <form onSubmit={handleDiscountSubmit} className="mt-6 space-y-4">
-              <input
-                value={discountForm.code}
-                onChange={(event) =>
-                  setDiscountForm((prev) => ({
-                    ...prev,
-                    code: event.target.value,
-                  }))
-                }
-                type="text"
-                placeholder="Code"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <select
-                  value={discountForm.type}
-                  onChange={(event) =>
-                    setDiscountForm((prev) => ({
-                      ...prev,
-                      type: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                <div
+                  id="inventory"
+                  className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
-                  <option value="percent">Percent</option>
-                  <option value="fixed">Fixed</option>
-                </select>
-                <input
-                  value={discountForm.value}
-                  onChange={(event) =>
-                    setDiscountForm((prev) => ({
-                      ...prev,
-                      value: event.target.value,
-                    }))
-                  }
-                  type="number"
-                  placeholder="Value"
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  value={discountForm.minSubtotal}
-                  onChange={(event) =>
-                    setDiscountForm((prev) => ({
-                      ...prev,
-                      minSubtotal: event.target.value,
-                    }))
-                  }
-                  type="number"
-                  placeholder="Minimum subtotal"
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                />
-                <input
-                  value={discountForm.expiresAt}
-                  onChange={(event) =>
-                    setDiscountForm((prev) => ({
-                      ...prev,
-                      expiresAt: event.target.value,
-                    }))
-                  }
-                  type="date"
-                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-xs text-ash">
-                <input
-                  checked={discountForm.active}
-                  onChange={(event) =>
-                    setDiscountForm((prev) => ({
-                      ...prev,
-                      active: event.target.checked,
-                    }))
-                  }
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ash"
-                />
-                Active
-              </label>
-              <button
-                type="submit"
-                className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
-              >
-                Save Discount
-              </button>
-            </form>
-            <div className="mt-6 space-y-3">
-              {discounts.length === 0 ? (
-                <div className="rounded-2xl border border-ash/30 bg-linen p-4 text-sm text-ash">
-                  No discounts added yet.
-                </div>
-              ) : (
-                discounts.map((discount) => (
-                  <div
-                    key={discount.code}
-                    className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-linen p-4 text-sm text-ash"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs uppercase tracking-[0.3em] text-ash">
-                        {discount.code}
-                      </span>
-                      <span className="text-xs text-ash">
-                        {discount.active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-obsidian">
-                      {discount.type === "percent"
-                        ? `${discount.value}% off`
-                        : `₦${Number(discount.value).toLocaleString()} off`}
-                    </p>
-                    <div className="flex flex-wrap gap-3 text-xs text-ash">
-                      {discount.minSubtotal ? (
-                        <span>
-                          Min ₦{Number(discount.minSubtotal).toLocaleString()}
-                        </span>
-                      ) : null}
-                      {discount.expiresAt ? (
-                        <span>
-                          Expires{" "}
-                          {new Date(discount.expiresAt).toLocaleDateString()}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDiscount(discount.code)}
-                        className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
-                      >
-                        {discount.active ? "Disable" : "Enable"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDiscount(discount.code)}
-                        className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-3xl border border-ash/30 bg-linen p-6">
-            <h2 className="text-xl font-semibold text-obsidian">Analytics</h2>
-            <p className="mt-2 text-sm text-ash">
-              Track store performance and conversion.
-            </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Store Views
-                </p>
-                <p className="mt-2 text-lg font-semibold text-obsidian">
-                  {analytics.storeViews || 0}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Cart Adds
-                </p>
-                <p className="mt-2 text-lg font-semibold text-obsidian">
-                  {analytics.cartAdds || 0}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Checkouts
-                </p>
-                <p className="mt-2 text-lg font-semibold text-obsidian">
-                  {analytics.checkouts || 0}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-ash/30 bg-porcelain p-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                  Conversion
-                </p>
-                <p className="mt-2 text-lg font-semibold text-obsidian">
-                  {conversionRate}%
-                </p>
-                {analytics.lastCheckoutAt ? (
-                  <p className="mt-1 text-xs text-ash">
-                    Last checkout{" "}
-                    {new Date(analytics.lastCheckoutAt).toLocaleDateString()}
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Inventory Alerts
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Low-stock pieces based on your alert threshold.
                   </p>
-                ) : null}
-              </div>
-            </div>
-            <div className="mt-6 space-y-2 text-sm text-ash">
-              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                Top Products
-              </p>
-              {topProducts.length === 0 ? (
-                <p>No sales data yet.</p>
-              ) : (
-                topProducts.map((product) => (
-                  <div
-                    key={product.name}
-                    className="flex items-center justify-between rounded-2xl border border-ash/30 bg-porcelain px-4 py-2"
-                  >
-                    <span>{product.name}</span>
-                    <span>
-                      ₦{Number(product.revenue).toLocaleString()} ·{" "}
-                      {product.quantity} sold
-                    </span>
+                  <div className="mt-6 space-y-3 text-sm text-ash">
+                    {lowInventory.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-linen p-4">
+                        No low-stock alerts right now.
+                      </div>
+                    ) : (
+                      lowInventory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between rounded-2xl border border-ash/30 bg-linen px-4 py-2"
+                        >
+                          <span>{item.name}</span>
+                          <span>{Number(item.inventory || 0)} left</span>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]">
-            <h2 className="text-xl font-semibold text-obsidian">
-              Inventory Alerts
-            </h2>
-            <p className="mt-2 text-sm text-ash">
-              Low-stock pieces based on your alert threshold.
-            </p>
-            <div className="mt-6 space-y-3 text-sm text-ash">
-              {lowInventory.length === 0 ? (
-                <div className="rounded-2xl border border-ash/30 bg-linen p-4">
-                  No low-stock alerts right now.
                 </div>
-              ) : (
-                lowInventory.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between rounded-2xl border border-ash/30 bg-linen px-4 py-2"
-                  >
-                    <span>{item.name}</span>
-                    <span>{Number(item.inventory || 0)} left</span>
-                  </div>
-                ))
-              )}
-            </div>
+              </section>
+            </main>
           </div>
         </div>
-      </main>
+      </div>
+      {isMenuOpen ? (
+        <button
+          type="button"
+          onClick={() => setIsMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-obsidian/40 lg:hidden"
+        />
+      ) : null}
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col gap-6 bg-porcelain px-6 pb-10 pt-10 shadow-[0_24px_60px_rgba(15,15,15,0.2)] transition-transform lg:hidden ${
+          isMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-[0.3em] text-ash">Menu</p>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(false)}
+            className="rounded-full border border-ash px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian"
+          >
+            Close
+          </button>
+        </div>
+        <nav className="space-y-2 text-xs font-semibold uppercase tracking-[0.2em] text-ash">
+          {navSections.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              onClick={() => setIsMenuOpen(false)}
+              className="block rounded-full border border-ash/30 bg-white/70 px-4 py-3 text-[11px] text-obsidian transition hover:border-ash"
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+      </aside>
       <Footer />
     </div>
   );
