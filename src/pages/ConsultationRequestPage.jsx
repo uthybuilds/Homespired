@@ -198,29 +198,52 @@ function ConsultationRequestPage({ type }) {
       }
       return data.secure_url;
     } catch {
+      // First fallback: edge function with service role to avoid RLS/policy issues
       try {
-        const path = `proofs/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage
-          .from("proofs")
-          .upload(path, file, {
-            upsert: true,
-            contentType: file.type || "image/*",
-            cacheControl: "3600",
-          });
-        if (upErr) throw upErr;
-        const { data: pub } = supabase.storage
-          .from("proofs")
-          .getPublicUrl(path);
-        if (!pub?.publicUrl) {
-          throw new Error("Upload failed: storage URL unavailable.");
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const text = String(reader.result || "");
+            resolve(text.includes(",") ? text.split(",")[1] : text);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const { data, error } = await invokeEdgeFunction("upload-proof", {
+          filename: file.name,
+          contentType: file.type || "image/*",
+          base64,
+        });
+        if (error || !data?.url) {
+          throw new Error(error?.message || "Upload failed on edge.");
         }
-        return pub.publicUrl;
-      } catch (fallbackErr) {
-        const message =
-          fallbackErr instanceof Error
-            ? fallbackErr.message
-            : "Upload failed. Please try again.";
-        throw new Error(message);
+        return data.url;
+      } catch {
+        // Second fallback: direct client upload to public bucket
+        try {
+          const path = `proofs/${Date.now()}-${file.name}`;
+          const { error: upErr } = await supabase.storage
+            .from("proofs")
+            .upload(path, file, {
+              upsert: true,
+              contentType: file.type || "image/*",
+              cacheControl: "3600",
+            });
+          if (upErr) throw upErr;
+          const { data: pub } = supabase.storage
+            .from("proofs")
+            .getPublicUrl(path);
+          if (!pub?.publicUrl) {
+            throw new Error("Upload failed: storage URL unavailable.");
+          }
+          return pub.publicUrl;
+        } catch (fallbackErr) {
+          const message =
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : "Upload failed. Please try again.";
+          throw new Error(message);
+        }
       }
     }
   };

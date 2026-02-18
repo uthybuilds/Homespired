@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import { useToast } from "../components/useToast.js";
-import supabase from "../utils/supabaseClient.js";
+import supabase, { invokeEdgeFunction } from "../utils/supabaseClient.js";
 import {
   addOrder,
   adjustInventory,
@@ -245,6 +245,18 @@ function CheckoutPage() {
     }));
   };
 
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || "");
+        const base64 = text.includes(",") ? text.split(",")[1] : text;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const uploadProof = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -271,29 +283,44 @@ function CheckoutPage() {
       }
       return data.secure_url;
     } catch {
+      // First fallback: edge function with service role to avoid RLS/policy issues
       try {
-        const path = `proofs/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage
-          .from("proofs")
-          .upload(path, file, {
-            upsert: true,
-            contentType: file.type || "image/*",
-            cacheControl: "3600",
-          });
-        if (upErr) throw upErr;
-        const { data: pub } = supabase.storage
-          .from("proofs")
-          .getPublicUrl(path);
-        if (!pub?.publicUrl) {
-          throw new Error("Upload failed: storage URL unavailable.");
+        const base64 = await fileToBase64(file);
+        const { data, error } = await invokeEdgeFunction("upload-proof", {
+          filename: file.name,
+          contentType: file.type || "image/*",
+          base64,
+        });
+        if (error || !data?.url) {
+          throw new Error(error?.message || "Upload failed on edge.");
         }
-        return pub.publicUrl;
-      } catch (fallbackErr) {
-        const message =
-          fallbackErr instanceof Error
-            ? fallbackErr.message
-            : "Upload failed. Please try again.";
-        throw new Error(message);
+        return data.url;
+      } catch {
+        // Second fallback: direct client upload to public bucket
+        try {
+          const path = `proofs/${Date.now()}-${file.name}`;
+          const { error: upErr } = await supabase.storage
+            .from("proofs")
+            .upload(path, file, {
+              upsert: true,
+              contentType: file.type || "image/*",
+              cacheControl: "3600",
+            });
+          if (upErr) throw upErr;
+          const { data: pub } = supabase.storage
+            .from("proofs")
+            .getPublicUrl(path);
+          if (!pub?.publicUrl) {
+            throw new Error("Upload failed: storage URL unavailable.");
+          }
+          return pub.publicUrl;
+        } catch (fallbackErr) {
+          const message =
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : "Upload failed. Please try again.";
+          throw new Error(message);
+        }
       }
     }
   };

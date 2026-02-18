@@ -1,26 +1,28 @@
 -- Create a public 'proofs' bucket (id = 'proofs') if it doesn't exist
-do $$
-begin
-  if not exists (select 1 from storage.buckets where id = 'proofs') then
-    insert into storage.buckets (id, name, public)
-    values ('proofs', 'proofs', true);
-  end if;
-end $$;
+insert into storage.buckets (id, name, public)
+values ('proofs', 'proofs', true)
+on conflict (id) do nothing;
 
--- Allow public READ access to objects in the 'proofs' bucket
-create policy if not exists "proofs_public_read"
+-- Allow public READ access to objects in the 'proofs' bucket (optional for DB access;
+-- public buckets are readable via the CDN automatically)
+drop policy if exists "proofs_public_read" on storage.objects;
+create policy "proofs_public_read"
   on storage.objects
   for select
+  to public
   using (bucket_id = 'proofs');
 
 -- Allow anyone (anon or authenticated) to INSERT into 'proofs' bucket
-create policy if not exists "proofs_public_insert"
+drop policy if exists "proofs_public_insert" on storage.objects;
+create policy "proofs_public_insert"
   on storage.objects
   for insert
+  to public
   with check (bucket_id = 'proofs');
 
 -- Restrict DELETE to admin only (by email), scoped to the 'proofs' bucket
-create policy if not exists "proofs_admin_delete"
+drop policy if exists "proofs_admin_delete" on storage.objects;
+create policy "proofs_admin_delete"
   on storage.objects
   for delete
   to authenticated
@@ -30,7 +32,8 @@ create policy if not exists "proofs_admin_delete"
   );
 
 -- Optional: Restrict UPDATE to admin to prevent arbitrary overwrites
-create policy if not exists "proofs_admin_update"
+drop policy if exists "proofs_admin_update" on storage.objects;
+create policy "proofs_admin_update"
   on storage.objects
   for update
   to authenticated
@@ -42,4 +45,3 @@ create policy if not exists "proofs_admin_update"
     bucket_id = 'proofs'
     and lower(auth.jwt() ->> 'email') = 'uthmanajanaku@gmail.com'
   );
-
