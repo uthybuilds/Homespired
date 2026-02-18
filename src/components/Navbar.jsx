@@ -65,7 +65,7 @@ function Navbar() {
     navigate("/", { replace: true });
   };
 
-  return (
+  return createPortal(
     <header className="fixed inset-x-0 top-0 z-40 bg-black/30 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">
         <NavLink to="/" className="flex shrink-0 items-center gap-3 pr-4">
@@ -300,7 +300,8 @@ function Navbar() {
             document.body,
           )
         : null}
-    </header>
+    </header>,
+    document.body,
   );
 }
 
