@@ -50,6 +50,7 @@ const navSections = [
   { id: "discounts", label: "Discounts" },
   { id: "analytics", label: "Analytics" },
   { id: "inventory", label: "Inventory" },
+  { id: "reviews", label: "Reviews" },
 ];
 
 const initialForm = {
@@ -98,6 +99,7 @@ function AdminDashboardPage() {
     description: "",
     inventory: "",
   });
+  const [adminReviews, setAdminReviews] = useState([]);
 
   const importLocalToCloud = async () => {
     try {
@@ -168,6 +170,14 @@ function AdminDashboardPage() {
           })),
         );
       }
+    })();
+    (async () => {
+      const { data } = await supabase
+        .from("reviews")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!isMounted) return;
+      setAdminReviews(Array.isArray(data) ? data : []);
     })();
     return () => {
       isMounted = false;
@@ -419,6 +429,19 @@ function AdminDashboardPage() {
       }
     }
     setEditingId("");
+  };
+
+  const removeReview = async (id) => {
+    const { error } = await supabase.from("reviews").delete().eq("id", id);
+    if (error) {
+      pushToast({
+        type: "error",
+        message: isAdmin ? "Delete failed. Try again." : "Sign in as admin.",
+      });
+      return;
+    }
+    setAdminReviews((prev) => prev.filter((r) => r.id !== id));
+    pushToast({ type: "success", message: "Review removed." });
   };
 
   const settingsErrors = useMemo(() => {
@@ -2210,6 +2233,60 @@ function AdminDashboardPage() {
                           <span>{Number(item.inventory || 0)} left</span>
                         </div>
                       ))
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
+              {activeSection === "reviews" ? (
+                <section
+                  id="reviews"
+                  className="rounded-3xl border border-ash/30 bg-linen p-6"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Product Reviews
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Manage user reviews across products.
+                  </p>
+                  <div className="mt-6 grid gap-4">
+                    {adminReviews.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-porcelain p-6 text-sm text-ash">
+                        No reviews yet.
+                      </div>
+                    ) : (
+                      adminReviews.map((rev) => {
+                        const prod = catalog.find(
+                          (p) => p.id === rev.product_id,
+                        );
+                        return (
+                          <div
+                            key={rev.id}
+                            className="flex flex-col gap-3 rounded-2xl border border-ash/30 bg-porcelain p-5 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-obsidian">
+                                {rev.name} · {rev.rating}★
+                              </p>
+                              <p className="text-xs text-ash">
+                                {prod
+                                  ? `${prod.name} · ${prod.category}`
+                                  : rev.product_id}
+                              </p>
+                              <p className="mt-1 text-sm text-obsidian">
+                                {rev.comment}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeReview(rev.id)}
+                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </section>
