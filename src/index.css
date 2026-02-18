@@ -14,6 +14,7 @@ body {
   min-height: 100vh;
   background: #f2eee8;
   color: #1c1b1a;
+  -webkit-text-size-adjust: 100%;
 }
 
 #root {
@@ -24,4 +25,12 @@ button,
 a,
 [role="button"] {
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
