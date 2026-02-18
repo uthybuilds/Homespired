@@ -20,6 +20,12 @@ import {
   updateRequest,
   updateDiscount,
   updateOrder,
+  saveCatalog,
+  saveDiscounts,
+  saveCustomers,
+  saveOrders,
+  saveRequests,
+  saveAnalytics,
 } from "../utils/catalogStore.js";
 import { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
@@ -80,6 +86,32 @@ function AdminDashboardPage() {
     expiresAt: "",
     active: true,
   });
+
+  const [isImporting, setIsImporting] = useState(false);
+
+  const importLocalToCloud = async () => {
+    try {
+      setIsImporting(true);
+      saveCatalog(getCatalog());
+      saveDiscounts(getDiscounts());
+      saveCustomers(getCustomers());
+      saveOrders(getOrders());
+      saveRequests(getRequests());
+      saveSettings(getSettings());
+      saveAnalytics(getAnalytics());
+      pushToast({
+        type: "success",
+        message: "Local data imported to cloud.",
+      });
+    } catch (error) {
+      pushToast({
+        type: "error",
+        message: error?.message || "Import failed.",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -763,6 +795,18 @@ function AdminDashboardPage() {
             <main className="flex-1 space-y-10">
               {activeSection === "overview" ? (
                 <section id="overview" className="space-y-6">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={importLocalToCloud}
+                      disabled={isImporting}
+                      className="rounded-full border border-ash/30 bg-porcelain px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition hover:border-ash disabled:opacity-60"
+                    >
+                      {isImporting
+                        ? "Importing…"
+                        : "Import local data to cloud"}
+                    </button>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
                       <p className="text-xs uppercase tracking-[0.3em] text-ash">

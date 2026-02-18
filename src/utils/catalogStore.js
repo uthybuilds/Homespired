@@ -1,7 +1,8 @@
 import supabase from "./supabaseClient.js";
 const storageMode = import.meta.env.VITE_STORAGE_MODE || "local";
 let __cloudHydrated = false;
-const __isCloud = () => storageMode === "cloud";
+const __isCloud = () =>
+  storageMode === "cloud" && import.meta.env.VITE_E2E_BYPASS_AUTH !== "true";
 const __dispatchStorage = () => {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("storage"));
