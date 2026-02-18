@@ -3,17 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
-import {
-  addToCart,
-  getCatalog,
-  trackAnalytics,
-} from "../utils/catalogStore.js";
+import { addToCart, getCatalog, trackAnalytics } from "../utils/catalogStore.js";
 import supabase from "../utils/supabaseClient.js";
 
 const Motion = motion;
 
 function ShopPage() {
-  const [catalog] = useState(() => getCatalog());
+  const [catalog, setCatalog] = useState(() => getCatalog());
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [session, setSession] = useState(null);
@@ -53,6 +49,21 @@ function ShopPage() {
 
   useEffect(() => {
     trackAnalytics("storeViews");
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const refresh = () => {
+      if (!isMounted) return;
+      setCatalog(getCatalog());
+    };
+    // Initial refresh in case cloud hydration completed before mount
+    refresh();
+    window.addEventListener("storage", refresh);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", refresh);
+    };
   }, []);
 
   const isAdmin =
