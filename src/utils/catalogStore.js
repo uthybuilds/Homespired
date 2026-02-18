@@ -23,6 +23,23 @@ const requestNumberKey = "homespired_request_number_v1";
 const cartUpdatedKey = "homespired_cart_updated_v1";
 const lastEmailKey = "homespired_last_email_v1";
 
+// In-memory store when running in strict cloud mode to avoid any localStorage writes
+const __memStore = {
+  [catalogKey]: [],
+  [cartKey]: [],
+  [settingsKey]: null,
+  [ordersKey]: [],
+  [requestsKey]: [],
+  [customersKey]: [],
+  [reviewsKey]: [],
+  [discountsKey]: [],
+  [analyticsKey]: null,
+  [orderNumberKey]: 0,
+  [requestNumberKey]: 0,
+  [cartUpdatedKey]: null,
+  [lastEmailKey]: "",
+};
+
 export const defaultSettings = {
   whatsappNumber: "09026561373",
   bankName: "Providus Bank",
@@ -135,83 +152,56 @@ async function __hydrateFromCloud() {
       supabase.from("analytics").select("*").limit(1).maybeSingle(),
     ]);
     if (Array.isArray(cat)) {
-      localStorage.setItem(
-        catalogKey,
-        JSON.stringify(
-          cat.map((x) => ({
-            id: x.id,
-            name: x.name,
-            price: Number(x.price || 0),
-            category: x.category,
-            image: x.image_url || x.image,
-            description: x.description,
-            inventory: Number(x.inventory || 0),
-          })),
-        ),
-      );
+      const mapped = cat.map((x) => ({
+        id: x.id,
+        name: x.name,
+        price: Number(x.price || 0),
+        category: x.category,
+        image: x.image_url || x.image,
+        description: x.description,
+        inventory: Number(x.inventory || 0),
+      }));
+      __memStore[catalogKey] = mapped;
     }
     if (Array.isArray(disc)) {
-      localStorage.setItem(
-        discountsKey,
-        JSON.stringify(
-          disc.map((x) => ({
-            code: x.code,
-            type: x.type,
-            value: Number(x.value || 0),
-            minSubtotal: Number(x.min_subtotal || 0),
-            expiresAt: x.expires_at ? new Date(x.expires_at).getTime() : null,
-            active: x.active !== false,
-            createdAt: x.created_at
-              ? new Date(x.created_at).getTime()
-              : Date.now(),
-          })),
-        ),
-      );
+      __memStore[discountsKey] = disc.map((x) => ({
+        code: x.code,
+        type: x.type,
+        value: Number(x.value || 0),
+        minSubtotal: Number(x.min_subtotal || 0),
+        expiresAt: x.expires_at ? new Date(x.expires_at).getTime() : null,
+        active: x.active !== false,
+        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
+      }));
     }
     if (Array.isArray(cust)) {
-      localStorage.setItem(
-        customersKey,
-        JSON.stringify(
-          cust.map((x) => ({
-            name: x.name || "",
-            email: x.email,
-            phone: x.phone || "",
-            address: x.address || "",
-            city: x.city || "",
-            state: x.state || "",
-            createdAt: x.created_at
-              ? new Date(x.created_at).getTime()
-              : Date.now(),
-          })),
-        ),
-      );
+      __memStore[customersKey] = cust.map((x) => ({
+        name: x.name || "",
+        email: x.email,
+        phone: x.phone || "",
+        address: x.address || "",
+        city: x.city || "",
+        state: x.state || "",
+        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
+      }));
     }
     if (Array.isArray(ord)) {
-      localStorage.setItem(
-        ordersKey,
-        JSON.stringify(
-          ord.map((x) => ({
-            id: x.id,
-            number: x.number,
-            items: x.items || [],
-            subtotal: Number(x.subtotal || 0),
-            shipping: Number(x.shipping || 0),
-            total: Number(x.total || 0),
-            discountCode: x.discount_code || "",
-            discountAmount: Number(x.discount_amount || 0),
-            zoneId: x.zone_id || "",
-            status: x.status || "Pending",
-            customer: x.customer || {},
-            notes: x.notes || "",
-            createdAt: x.created_at
-              ? new Date(x.created_at).getTime()
-              : Date.now(),
-            updatedAt: x.updated_at
-              ? new Date(x.updated_at).getTime()
-              : Date.now(),
-          })),
-        ),
-      );
+      __memStore[ordersKey] = ord.map((x) => ({
+        id: x.id,
+        number: x.number,
+        items: x.items || [],
+        subtotal: Number(x.subtotal || 0),
+        shipping: Number(x.shipping || 0),
+        total: Number(x.total || 0),
+        discountCode: x.discount_code || "",
+        discountAmount: Number(x.discount_amount || 0),
+        zoneId: x.zone_id || "",
+        status: x.status || "Pending",
+        customer: x.customer || {},
+        notes: x.notes || "",
+        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
+        updatedAt: x.updated_at ? new Date(x.updated_at).getTime() : Date.now(),
+      }));
     }
     if (Array.isArray(req)) {
       localStorage.setItem(
@@ -252,7 +242,7 @@ async function __hydrateFromCloud() {
           ),
         }
       : defaultSettings;
-    localStorage.setItem(settingsKey, JSON.stringify(mergedSettings));
+    __memStore[settingsKey] = mergedSettings;
     const mergedAnalytics = ana
       ? {
           storeViews: Number(ana.store_views || 0),
@@ -263,7 +253,7 @@ async function __hydrateFromCloud() {
             : null,
         }
       : { storeViews: 0, cartAdds: 0, checkouts: 0, lastCheckoutAt: null };
-    localStorage.setItem(analyticsKey, JSON.stringify(mergedAnalytics));
+    __memStore[analyticsKey] = mergedAnalytics;
     __dispatchStorage();
   } catch (_err) {
     void _err;
@@ -275,6 +265,9 @@ if (__isCloud()) {
 }
 
 export const getCatalog = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[catalogKey]) ? __memStore[catalogKey] : [];
+  }
   const raw = localStorage.getItem(catalogKey);
   if (!raw) return [];
   try {
@@ -286,8 +279,9 @@ export const getCatalog = () => {
 };
 
 export const saveCatalog = (items) => {
-  localStorage.setItem(catalogKey, JSON.stringify(items));
   if (__isCloud()) {
+    __memStore[catalogKey] = items;
+    __dispatchStorage();
     const rows = items.map((x) => ({
       id: x.id,
       name: x.name,
@@ -298,6 +292,8 @@ export const saveCatalog = (items) => {
       inventory: x.inventory ?? 0,
     }));
     supabase.from("catalog").upsert(rows, { onConflict: "id" });
+  } else {
+    localStorage.setItem(catalogKey, JSON.stringify(items));
   }
 };
 
