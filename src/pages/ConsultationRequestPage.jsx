@@ -1,0 +1,483 @@
+import { useEffect, useMemo, useState } from "react";
+import { NavLink, useParams } from "react-router-dom";
+import Navbar from "../components/Navbar.jsx";
+import Footer from "../components/Footer.jsx";
+import {
+  getNextRequestNumber,
+  getSettings,
+  normalizeWhatsAppNumber,
+} from "../utils/catalogStore.js";
+import { invokeEdgeFunction } from "../utils/supabaseClient.js";
+
+function ConsultationRequestPage({ type }) {
+  const { optionId } = useParams();
+  const [settings, setSettings] = useState(() => getSettings());
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    city: "",
+    state: "",
+    notes: "",
+  });
+  const [proof, setProof] = useState(null);
+  const [proofName, setProofName] = useState("");
+  const [status, setStatus] = useState({ type: "idle", message: "" });
+  const disableRedirect = import.meta.env.VITE_E2E_DISABLE_REDIRECT === "true";
+
+  useEffect(() => {
+    const sync = () => setSettings(getSettings());
+    window.addEventListener("settings-updated", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("settings-updated", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const option = useMemo(() => {
+    const source =
+      type === "inspection"
+        ? settings.inspectionOptions
+        : type === "class"
+          ? settings.classOptions
+          : settings.consultationOptions;
+    return source.find((item) => item.id === optionId) || null;
+  }, [optionId, settings, type]);
+
+  const handleFormChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const uploadProof = async (file) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName) {
+      throw new Error("Cloudinary cloud name is missing.");
+    }
+    if (!uploadPreset) {
+      throw new Error(
+        "Cloudinary upload preset is missing. Add VITE_CLOUDINARY_UPLOAD_PRESET in .env and create an unsigned preset.",
+      );
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message =
+        data?.error?.message ||
+        data?.error ||
+        "Upload failed. Check your Cloudinary preset.";
+      throw new Error(message);
+    }
+    if (!data?.secure_url) {
+      throw new Error("Upload failed. No file URL returned.");
+    }
+    return data.secure_url;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!option) {
+      setStatus({ type: "error", message: "Package not found." });
+      return;
+    }
+    if (!option.redirectOnly) {
+      if (
+        !settings.bankName ||
+        !settings.accountName ||
+        !settings.accountNumber
+      ) {
+        setStatus({
+          type: "error",
+          message: "Complete bank details in admin settings to continue.",
+        });
+        return;
+      }
+
+      if (!proof) {
+        setStatus({
+          type: "error",
+          message: "Upload your payment proof to continue.",
+        });
+        return;
+      }
+    }
+
+    try {
+      setStatus({
+        type: "loading",
+        message: option.redirectOnly
+          ? "Opening WhatsApp..."
+          : "Uploading proof...",
+      });
+      const requestNumber = getNextRequestNumber();
+      const requestRef = `Request ${requestNumber}`;
+      const price = Number(option.price || 0);
+      if (option.redirectOnly) {
+        const whatsappNumber = normalizeWhatsAppNumber(settings.whatsappNumber);
+        if (!whatsappNumber) {
+          setStatus({
+            type: "error",
+            message:
+              "Add a valid WhatsApp number in admin settings to continue.",
+          });
+          return;
+        }
+        const location = [form.city, form.state].filter(Boolean).join(", ");
+        const whatsappLines = [
+          "HOMESPIRED STUDIO",
+          `${type === "inspection" ? "Inspection" : type === "class" ? "Class" : "Consultation"} Request — ${requestRef}`,
+          "",
+          "Client",
+          `Name: ${form.name}`,
+          `Phone: ${form.phone}`,
+          form.email ? `Email: ${form.email}` : null,
+          form.address ? `Address: ${form.address}` : null,
+          location ? `City/State: ${location}` : null,
+          "",
+          "Request",
+          `Package: ${option.title}`,
+          form.notes ? `Notes: ${form.notes}` : null,
+          "",
+          "Next Step",
+          "Please advise travel date, location access, and pricing.",
+        ].filter((line) => line !== null && line !== undefined);
+        const message = whatsappLines.join("\n");
+        const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+          message,
+        )}`;
+        setStatus({
+          type: "success",
+          message: "Request ready. We will confirm shortly.",
+        });
+        if (disableRedirect) {
+          window.__e2eLastRedirect = url;
+          return;
+        }
+        window.location.href = url;
+        return;
+      }
+
+      const proofUrl = await uploadProof(proof);
+      const lines = [
+        `${type === "inspection" ? "Inspection" : type === "class" ? "Class" : "Consultation"} Request`,
+        `Request Ref: ${requestRef}`,
+        `Package: ${option.title}`,
+        `Customer: ${form.name}`,
+        `Phone: ${form.phone}`,
+        form.email ? `Email: ${form.email}` : null,
+        form.address ? `Address: ${form.address}` : null,
+        form.city ? `City: ${form.city}` : null,
+        form.state ? `State: ${form.state}` : null,
+        form.notes ? `Notes: ${form.notes}` : null,
+        `Total: ₦${price.toLocaleString()}`,
+        `Payment Proof: ${proofUrl}`,
+      ].filter(Boolean);
+      const { error } = await invokeEdgeFunction("form-delivery", {
+        type: type === "class" ? "class_request" : "consultation_request",
+        payload: {
+          requestType:
+            type === "inspection"
+              ? "Inspection Request"
+              : type === "class"
+                ? "Class Enrollment"
+                : "Consultation Request",
+          requestRef,
+          packageTitle: option.title,
+          price,
+          clientName: form.name,
+          clientEmail: form.email || "",
+          clientPhone: form.phone,
+          address: form.address || "",
+          city: form.city || "",
+          state: form.state || "",
+          notes: form.notes || "",
+          proofUrl: proofUrl || "",
+          lines,
+        },
+      });
+      if (error) {
+        let message = error.message || "Could not send. Please try again.";
+        const body = error.context?.body;
+        if (typeof body === "string") {
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed?.error) {
+              message = parsed.error;
+            }
+          } catch {
+            if (body) {
+              message = body;
+            }
+          }
+        }
+        setStatus({
+          type: "error",
+          message,
+        });
+        return;
+      }
+      setStatus({
+        type: "success",
+        message: "Request received. We will confirm shortly.",
+      });
+      setForm({
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        city: "",
+        state: "",
+        notes: "",
+      });
+      setProof(null);
+      setProofName("");
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Payment proof upload failed. Please try again.",
+      });
+    }
+  };
+
+  if (!option) {
+    return (
+      <div className="min-h-screen bg-porcelain text-obsidian">
+        <Navbar />
+        <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 pb-24 pt-32">
+          <h1 className="text-3xl font-semibold">
+            This package is not available.
+          </h1>
+          <p className="text-base text-ash">
+            Return to the category list to choose another option.
+          </p>
+          <NavLink
+            to={
+              type === "inspection"
+                ? "/inspections"
+                : type === "class"
+                  ? "/classes"
+                  : "/advisory"
+            }
+            className="inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+          >
+            Back to Packages
+          </NavLink>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-porcelain text-obsidian">
+      <Navbar />
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-24 pt-32">
+        <div className="space-y-4">
+          <p className="text-xs uppercase tracking-[0.4em] text-ash">
+            {type === "inspection"
+              ? "On-site Inspection"
+              : type === "class"
+                ? "Interior Design Class"
+                : "Advisory Session"}
+          </p>
+          <h1 className="text-4xl font-semibold sm:text-5xl">{option.title}</h1>
+          <p className="max-w-2xl text-base text-ash sm:text-lg">
+            {option.summary}
+          </p>
+        </div>
+
+        <section className="grid gap-8 rounded-3xl border border-ash/30 bg-porcelain p-8 shadow-[0_24px_40px_rgba(0,0,0,0.06)] lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-ash/30 bg-linen p-6">
+              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                {option.redirectOnly ? "Request Submission" : "Bank Transfer"}
+              </p>
+              {option.redirectOnly ? (
+                <div className="mt-4 space-y-2 text-sm text-ash">
+                  <p>Submit your details and we will confirm availability.</p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-2 text-sm text-obsidian">
+                  {settings.bankName &&
+                  settings.accountName &&
+                  settings.accountNumber ? (
+                    <>
+                      <p>{settings.bankName}</p>
+                      <p>{settings.accountName}</p>
+                      <p>{settings.accountNumber}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-ash">
+                      Bank details will appear once they are saved in the admin
+                      settings.
+                    </p>
+                  )}
+                  <p className="pt-3 text-sm font-semibold text-obsidian">
+                    Total: ₦{Number(option.price).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="space-y-3 text-sm text-ash">
+              <p>
+                {option.redirectOnly
+                  ? "Provide project details so we can confirm availability."
+                  : "Upload your payment proof and we will confirm your request."}
+              </p>
+              <p>
+                For urgent requests, message our studio directly after
+                submission.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              value={form.name}
+              onChange={(event) => handleFormChange("name", event.target.value)}
+              type="text"
+              placeholder="Full name"
+              required
+              className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+            />
+            <input
+              value={form.phone}
+              onChange={(event) =>
+                handleFormChange("phone", event.target.value)
+              }
+              type="tel"
+              placeholder="Phone number"
+              required
+              className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+            />
+            <input
+              value={form.email}
+              onChange={(event) =>
+                handleFormChange("email", event.target.value)
+              }
+              type="email"
+              placeholder="Email address"
+              required
+              className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+            />
+            <input
+              value={form.address}
+              onChange={(event) =>
+                handleFormChange("address", event.target.value)
+              }
+              type="text"
+              placeholder="Project address"
+              required
+              className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <input
+                value={form.city}
+                onChange={(event) =>
+                  handleFormChange("city", event.target.value)
+                }
+                type="text"
+                placeholder="City"
+                required
+                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+              />
+              <input
+                value={form.state}
+                onChange={(event) =>
+                  handleFormChange("state", event.target.value)
+                }
+                type="text"
+                placeholder="State"
+                required
+                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+              />
+            </div>
+            <textarea
+              value={form.notes}
+              onChange={(event) =>
+                handleFormChange("notes", event.target.value)
+              }
+              rows="3"
+              placeholder={
+                type === "class"
+                  ? "Tell us about your goals"
+                  : "Tell us about your project"
+              }
+              required
+              className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+            />
+            {!option.redirectOnly && (
+              <div className="rounded-2xl border border-dashed border-ash/40 bg-white/70 px-4 py-4">
+                <p className="mb-2 text-xs uppercase tracking-[0.3em] text-ash">
+                  Upload proof of payment
+                </p>
+                <label
+                  htmlFor="payment-proof-upload"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-ash/40 bg-white/80 px-4 py-3 text-sm text-obsidian"
+                >
+                  <span>{proofName || "Tap to upload payment proof"}</span>
+                  <span className="text-xs uppercase tracking-[0.2em] text-ash">
+                    Upload
+                  </span>
+                </label>
+                <input
+                  id="payment-proof-upload"
+                  type="file"
+                  accept="image/*"
+                  required
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setProof(file);
+                    setProofName(file?.name || "");
+                  }}
+                  className="sr-only"
+                />
+              </div>
+            )}
+            {status.message && (
+              <div
+                className={`rounded-2xl border px-4 py-3 text-sm ${
+                  status.type === "error"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : status.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-ash/30 bg-linen text-ash"
+                }`}
+              >
+                {status.message}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={status.type === "loading"}
+              className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {status.type === "loading"
+                ? "Processing..."
+                : option.redirectOnly
+                  ? "Send Request"
+                  : "Confirm Payment"}
+            </button>
+          </form>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+export default ConsultationRequestPage;
