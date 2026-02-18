@@ -15,75 +15,46 @@ import Footer from "../components/Footer.jsx";
 const Motion = motion;
 
 function Home() {
+  const canAnimateOnView =
+    typeof window !== "undefined" && "IntersectionObserver" in window;
+  const inViewProps = canAnimateOnView
+    ? {
+        initial: { opacity: 0, y: 24 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true, amount: 0.3 },
+        transition: { duration: 0.6, ease: "easeOut" },
+      }
+    : { initial: false };
+
   return (
     <div className="min-h-screen bg-porcelain text-obsidian">
       <Navbar />
       <Hero />
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <ConsultationsSection />
       </Motion.div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <ClassSection />
       </Motion.div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <PortfolioSection />
       </Motion.div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <AboutSection />
       </Motion.div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <SignaturePiecesSection />
       </Motion.div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <TestimonialsSection />
       </Motion.div>
       <div>
         <NewsletterSection />
       </div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <FaqSection />
       </Motion.div>
-      <Motion.div
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+      <Motion.div {...inViewProps}>
         <ContactSection />
       </Motion.div>
       <Footer />
