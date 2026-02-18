@@ -336,85 +336,66 @@ function CheckoutPage() {
                 Delivery Details
               </h2>
               <div className="mt-6 space-y-4 max-w-lg mx-auto">
-                <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                  <span>Full name</span>
-                  <input
-                    value={form.name}
-                    onChange={(event) =>
-                      handleFormChange("name", event.target.value)
-                    }
-                    type="text"
-                    placeholder="Full name"
-                    required
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
-                </label>
-                <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                  <span>Email address</span>
-                  <input
-                    value={form.email}
-                    onChange={(event) =>
-                      handleFormChange("email", event.target.value)
-                    }
-                    type="email"
-                    placeholder="Email address"
-                    required
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
-                </label>
-                <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                  <span>Phone number</span>
-                  <input
-                    value={form.phone}
-                    onChange={(event) =>
-                      handleFormChange("phone", event.target.value)
-                    }
-                    type="text"
-                    placeholder="Phone number"
-                    required
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
-                </label>
-                <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                  <span>Delivery address</span>
-                  <input
-                    value={form.address}
-                    onChange={(event) =>
-                      handleFormChange("address", event.target.value)
-                    }
-                    type="text"
-                    placeholder="Delivery address"
-                    required
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
-                </label>
+                <input
+                  value={form.name}
+                  onChange={(event) =>
+                    handleFormChange("name", event.target.value)
+                  }
+                  type="text"
+                  placeholder="Full name"
+                  required
+                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                />
+                <input
+                  value={form.email}
+                  onChange={(event) =>
+                    handleFormChange("email", event.target.value)
+                  }
+                  type="email"
+                  placeholder="Email address"
+                  required
+                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                />
+                <input
+                  value={form.phone}
+                  onChange={(event) =>
+                    handleFormChange("phone", event.target.value)
+                  }
+                  type="text"
+                  placeholder="Phone number"
+                  required
+                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                />
+                <input
+                  value={form.address}
+                  onChange={(event) =>
+                    handleFormChange("address", event.target.value)
+                  }
+                  type="text"
+                  placeholder="Delivery address"
+                  required
+                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                />
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                    <span>City</span>
-                    <input
-                      value={form.city}
-                      onChange={(event) =>
-                        handleFormChange("city", event.target.value)
-                      }
-                      type="text"
-                      placeholder="City"
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
-                  </label>
-                  <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                    <span>State</span>
-                    <input
-                      value={form.state}
-                      onChange={(event) =>
-                        handleFormChange("state", event.target.value)
-                      }
-                      type="text"
-                      placeholder="State"
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
-                  </label>
+                  <input
+                    value={form.city}
+                    onChange={(event) =>
+                      handleFormChange("city", event.target.value)
+                    }
+                    type="text"
+                    placeholder="City"
+                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                  />
+                  <input
+                    value={form.state}
+                    onChange={(event) =>
+                      handleFormChange("state", event.target.value)
+                    }
+                    type="text"
+                    placeholder="State"
+                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                  />
                 </div>
-                {/* delivery date/time removed */}
                 <select
                   value={effectiveZone}
                   onChange={(event) => setShippingZone(event.target.value)}
@@ -432,18 +413,15 @@ function CheckoutPage() {
                     ? "Delivery fee is set from your city or state."
                     : "Select the delivery zone that matches your address."}
                 </p>
-                <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
-                  <span>Delivery notes</span>
-                  <textarea
-                    value={form.notes}
-                    onChange={(event) =>
-                      handleFormChange("notes", event.target.value)
-                    }
-                    rows="3"
-                    placeholder="Delivery notes"
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
-                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={(event) =>
+                    handleFormChange("notes", event.target.value)
+                  }
+                  rows="3"
+                  placeholder="Delivery notes"
+                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                />
                 <div className="rounded-2xl border border-dashed border-ash/40 bg-white/70 px-4 py-4">
                   <p className="mb-2 text-xs uppercase tracking-[0.3em] text-ash">
                     Upload proof of payment
