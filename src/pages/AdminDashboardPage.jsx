@@ -1658,7 +1658,7 @@ function AdminDashboardPage() {
                   </p>
                   <form
                     onSubmit={handleDiscountSubmit}
-                    className="mt-6 space-y-4"
+                    className="mt-6 space-y-4 max-w-lg mx-auto"
                   >
                     <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
                       <span>Code</span>

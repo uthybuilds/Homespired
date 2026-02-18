@@ -335,7 +335,7 @@ function CheckoutPage() {
               <h2 className="text-xl font-semibold text-obsidian">
                 Delivery Details
               </h2>
-              <div className="mt-6 space-y-4">
+              <div className="mt-6 space-y-4 max-w-lg mx-auto">
                 <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
                   <span>Full name</span>
                   <input
