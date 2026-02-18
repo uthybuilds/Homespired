@@ -87,14 +87,30 @@ function CheckoutPage() {
           .select("*")
           .eq("email", email.toLowerCase())
           .maybeSingle();
-        if (!active || !data) return;
+        if (active && data) {
+          setForm((prev) => ({
+            ...prev,
+            name: prev.name || data.name || "",
+            phone: prev.phone || data.phone || "",
+            address: prev.address || data.address || "",
+            city: prev.city || data.city || "",
+            state: prev.state || data.state || "",
+          }));
+          return;
+        }
+        const { data: cust } = await supabase
+          .from("customers")
+          .select("*")
+          .eq("email", email.toLowerCase())
+          .maybeSingle();
+        if (!active || !cust) return;
         setForm((prev) => ({
           ...prev,
-          name: prev.name || data.name || "",
-          phone: prev.phone || data.phone || "",
-          address: prev.address || data.address || "",
-          city: prev.city || data.city || "",
-          state: prev.state || data.state || "",
+          name: prev.name || cust.name || "",
+          phone: prev.phone || cust.phone || "",
+          address: prev.address || cust.address || "",
+          city: prev.city || cust.city || "",
+          state: prev.state || cust.state || "",
         }));
       } catch (e) {
         void e;
@@ -104,6 +120,49 @@ function CheckoutPage() {
       active = false;
     };
   }, [form.email]);
+
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    if (!isCloud) return;
+    const syncFromCustomers = () => {
+      const email = form.email?.trim().toLowerCase();
+      if (!email) return;
+      const customer = getCustomers().find(
+        (entry) => entry.email?.toLowerCase() === email,
+      );
+      if (!customer) return;
+      setForm((prev) => ({
+        ...prev,
+        name: prev.name || customer.name || "",
+        phone: prev.phone || customer.phone || "",
+        address: prev.address || customer.address || "",
+        city: prev.city || customer.city || "",
+        state: prev.state || customer.state || "",
+      }));
+    };
+    window.addEventListener("storage", syncFromCustomers);
+    return () => {
+      window.removeEventListener("storage", syncFromCustomers);
+    };
+  }, [form.email]);
+
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    const email = form.email?.trim();
+    if (!isCloud || !email || !email.includes("@")) return;
+    const handle = window.setTimeout(() => {
+      const payload = {
+        name: form.name || "",
+        email,
+        phone: form.phone || "",
+        address: form.address || "",
+        city: form.city || "",
+        state: form.state || "",
+      };
+      upsertCustomer(payload);
+    }, 800);
+    return () => window.clearTimeout(handle);
+  }, [form.name, form.phone, form.address, form.city, form.state, form.email]);
 
   useEffect(() => {
     const sync = () => setSettings(getSettings());

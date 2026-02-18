@@ -61,6 +61,75 @@ function ConsultationRequestPage({ type }) {
   }, []);
 
   useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    const email = form.email?.trim();
+    const shouldFetch =
+      isCloud &&
+      email &&
+      email.includes("@") &&
+      (!form.name || !form.phone || !form.address || !form.city || !form.state);
+    let active = true;
+    (async () => {
+      if (!shouldFetch) return;
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("email", email.toLowerCase())
+          .maybeSingle();
+        if (active && data) {
+          setForm((prev) => ({
+            ...prev,
+            name: prev.name || data.name || "",
+            phone: prev.phone || data.phone || "",
+            address: prev.address || data.address || "",
+            city: prev.city || data.city || "",
+            state: prev.state || data.state || "",
+          }));
+          return;
+        }
+        const { data: cust } = await supabase
+          .from("customers")
+          .select("*")
+          .eq("email", email.toLowerCase())
+          .maybeSingle();
+        if (!active || !cust) return;
+        setForm((prev) => ({
+          ...prev,
+          name: prev.name || cust.name || "",
+          phone: prev.phone || cust.phone || "",
+          address: prev.address || cust.address || "",
+          city: prev.city || cust.city || "",
+          state: prev.state || cust.state || "",
+        }));
+      } catch (e) {
+        void e;
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [form.email]);
+
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    const email = form.email?.trim();
+    if (!isCloud || !email || !email.includes("@")) return;
+    const handle = window.setTimeout(() => {
+      const payload = {
+        name: form.name || "",
+        email,
+        phone: form.phone || "",
+        address: form.address || "",
+        city: form.city || "",
+        state: form.state || "",
+      };
+      upsertCustomer(payload);
+    }, 800);
+    return () => window.clearTimeout(handle);
+  }, [form.name, form.phone, form.address, form.city, form.state, form.email]);
+
+  useEffect(() => {
     const sync = () => setSettings(getSettings());
     window.addEventListener("settings-updated", sync);
     window.addEventListener("storage", sync);
