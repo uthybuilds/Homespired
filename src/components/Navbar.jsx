@@ -67,7 +67,7 @@ function Navbar() {
 
   return createPortal(
     <header
-      className="fixed inset-x-0 top-0 z-40 bg-black/30 backdrop-blur-xl"
+      className="fixed inset-x-0 top-0 z-50 bg-black/80"
       style={{
         position: "fixed",
         top: 0,
