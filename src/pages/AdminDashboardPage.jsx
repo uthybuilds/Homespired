@@ -27,7 +27,7 @@ import {
   saveRequests,
   saveAnalytics,
 } from "../utils/catalogStore.js";
-import { invokeEdgeFunction } from "../utils/supabaseClient.js";
+import supabase, { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
 const categories = [
   "Furniture",
@@ -242,7 +242,7 @@ function AdminDashboardPage() {
     }
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -265,6 +265,25 @@ function AdminDashboardPage() {
       return;
     }
     setCatalog(addCatalogItem(nextItem));
+    if (import.meta.env.VITE_STORAGE_MODE === "cloud") {
+      const { error } = await supabase.from("catalog").upsert([
+        {
+          id: nextItem.id,
+          name: nextItem.name,
+          price: nextItem.price,
+          category: nextItem.category,
+          image_url: nextItem.image,
+          description: nextItem.description,
+          inventory: nextItem.inventory ?? 0,
+        },
+      ]);
+      if (error) {
+        pushToast({
+          type: "error",
+          message: "Cloud save failed. Check your login and try again.",
+        });
+      }
+    }
     setForm(initialForm);
     setIsSubmitting(false);
     pushToast({ type: "success", message: "Product published." });
