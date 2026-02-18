@@ -221,23 +221,68 @@ async function __hydrateFromCloud() {
         createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
       }));
     }
+    const custByEmail = new Map(
+      (Array.isArray(cust) ? cust : []).map((c) => [
+        (c.email || "").toLowerCase(),
+        {
+          name: c.name || "",
+          email: c.email || "",
+          phone: c.phone || "",
+          address: c.address || "",
+          city: c.city || "",
+          state: c.state || "",
+        },
+      ]),
+    );
     if (Array.isArray(ord)) {
-      __memStore[ordersKey] = ord.map((x) => ({
-        id: x.id,
-        number: x.number,
-        items: x.items || [],
-        subtotal: Number(x.subtotal || 0),
-        shipping: Number(x.shipping || 0),
-        total: Number(x.total || 0),
-        discountCode: x.discount_code || "",
-        discountAmount: Number(x.discount_amount || 0),
-        zoneId: x.zone_id || "",
-        status: x.status || "Pending",
-        customer: x.customer || {},
-        notes: x.notes || "",
-        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
-        updatedAt: x.updated_at ? new Date(x.updated_at).getTime() : Date.now(),
-      }));
+      __memStore[ordersKey] = ord.map((x) => {
+        const top = {
+          name: x.name || "",
+          email: x.email || "",
+          phone: x.phone || "",
+          address: x.address || "",
+          city: x.city || "",
+          state: x.state || "",
+        };
+        const mergedEmail = (
+          x.customer?.email ||
+          top.email ||
+          ""
+        ).toLowerCase();
+        const fromBook =
+          mergedEmail && custByEmail.has(mergedEmail)
+            ? custByEmail.get(mergedEmail)
+            : null;
+        const customer = {
+          name: x.customer?.name || top.name || fromBook?.name || "",
+          email: x.customer?.email || top.email || fromBook?.email || "",
+          phone: x.customer?.phone || top.phone || fromBook?.phone || "",
+          address:
+            x.customer?.address || top.address || fromBook?.address || "",
+          city: x.customer?.city || top.city || fromBook?.city || "",
+          state: x.customer?.state || top.state || fromBook?.state || "",
+        };
+        return {
+          id: x.id,
+          number: x.number,
+          items: x.items || [],
+          subtotal: Number(x.subtotal || 0),
+          shipping: Number(x.shipping || 0),
+          total: Number(x.total || 0),
+          discountCode: x.discount_code || "",
+          discountAmount: Number(x.discount_amount || 0),
+          zoneId: x.zone_id || "",
+          status: x.status || "Pending",
+          customer,
+          notes: x.notes || "",
+          createdAt: x.created_at
+            ? new Date(x.created_at).getTime()
+            : Date.now(),
+          updatedAt: x.updated_at
+            ? new Date(x.updated_at).getTime()
+            : Date.now(),
+        };
+      });
     }
     if (Array.isArray(req)) {
       __memStore[requestsKey] = req.map((x) => ({

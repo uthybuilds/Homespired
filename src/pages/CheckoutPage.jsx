@@ -54,6 +54,24 @@ function CheckoutPage() {
 
   useEffect(() => {
     const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    if (!isCloud) return;
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const email = data?.session?.user?.email || "";
+      if (!mounted || !email) return;
+      if (!form.email) {
+        setForm((prev) => ({ ...prev, email }));
+      }
+      setLastKnownEmail(email);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
     const email = form.email?.trim();
     const shouldFetch =
       isCloud &&
@@ -325,6 +343,18 @@ function CheckoutPage() {
         type: "success",
         message: "Order placed. We will confirm shortly.",
       });
+      setForm({
+        name: "",
+        email: form.email,
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        notes: "",
+      });
+      setProof(null);
+      setProofName("");
+      setDiscountCode("");
       if (disableRedirect) {
         window.__e2eLastRedirect = url;
         return;

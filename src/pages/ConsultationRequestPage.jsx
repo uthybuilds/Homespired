@@ -14,7 +14,7 @@ import {
   upsertCustomer,
   nextCounter,
 } from "../utils/catalogStore.js";
-import { invokeEdgeFunction } from "../utils/supabaseClient.js";
+import supabase, { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
 function ConsultationRequestPage({ type }) {
   const { optionId } = useParams();
@@ -41,6 +41,24 @@ function ConsultationRequestPage({ type }) {
   const [proofName, setProofName] = useState("");
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const disableRedirect = import.meta.env.VITE_E2E_DISABLE_REDIRECT === "true";
+
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    if (!isCloud) return;
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const email = data?.session?.user?.email || "";
+      if (!mounted || !email) return;
+      if (!form.email) {
+        setForm((prev) => ({ ...prev, email }));
+      }
+      setLastKnownEmail(email);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const sync = () => setSettings(getSettings());

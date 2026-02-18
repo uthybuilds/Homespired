@@ -41,7 +41,8 @@ function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed right-4 top-4 z-50 flex w-full max-w-xs flex-col gap-3 sm:right-6 sm:top-6">
+      <div className="fixed inset-x-0 bottom-6 z-50 flex w-full justify-center px-4 sm:bottom-8">
+        <div className="flex w-full max-w-sm flex-col gap-3">
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -52,6 +53,7 @@ function ToastProvider({ children }) {
             {toast.message}
           </div>
         ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );

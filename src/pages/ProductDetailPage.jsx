@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import { useToast } from "../components/useToast.js";
 import {
   addReview,
   addToCart,
@@ -11,6 +12,7 @@ import {
 import supabase from "../utils/supabaseClient.js";
 
 function ProductDetailPage() {
+  const { pushToast } = useToast();
   const { productId } = useParams();
   const [product, setProduct] = useState(() =>
     getCatalog().find((item) => item.id === productId),
@@ -73,6 +75,7 @@ function ProductDetailPage() {
         if (Array.isArray(data)) {
           setReviews(
             data.map((r) => ({
+              id: r.id || `${r.product_id}-${r.created_at || Math.random()}`,
               productId: r.product_id,
               name: r.name,
               rating: Number(r.rating || 0),
@@ -83,6 +86,42 @@ function ProductDetailPage() {
             })),
           );
         }
+        const channel = supabase
+          .channel(`reviews-${productId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "reviews",
+              filter: `product_id=eq.${productId}`,
+            },
+            (payload) => {
+              const r = payload.new;
+              setReviews((prev) => [
+                {
+                  id:
+                    r.id || `${r.product_id}-${r.created_at || Math.random()}`,
+                  productId: r.product_id,
+                  name: r.name,
+                  rating: Number(r.rating || 0),
+                  comment: r.comment || "",
+                  createdAt: r.created_at
+                    ? new Date(r.created_at).getTime()
+                    : Date.now(),
+                },
+                ...prev,
+              ]);
+            },
+          )
+          .subscribe();
+        return () => {
+          try {
+            supabase.removeChannel(channel);
+          } catch (e) {
+            void e;
+          }
+        };
       })();
     }
     return () => {
@@ -198,7 +237,7 @@ function ProductDetailPage() {
               <div className="mt-4 grid gap-3">
                 {reviews.map((review) => (
                   <div
-                    key={review.id}
+                    key={review.id || `${review.name}-${review.createdAt}`}
                     className="rounded-2xl border border-ash/30 bg-porcelain p-4"
                   >
                     <div className="flex items-center justify-between text-xs text-ash">
@@ -213,20 +252,63 @@ function ProductDetailPage() {
               </div>
               <form
                 className="mt-6 space-y-3"
-                onSubmit={(event) => {
+                onSubmit={async (event) => {
                   event.preventDefault();
                   if (!reviewForm.name || !reviewForm.comment) return;
-                  const next = addReview({
+                  const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+                  const draft = {
                     id: `${Date.now()}`,
                     productId,
                     name: reviewForm.name.trim(),
                     rating: Number(reviewForm.rating),
                     comment: reviewForm.comment.trim(),
                     createdAt: Date.now(),
-                  });
-                  setReviews(
-                    next.filter((review) => review.productId === productId),
-                  );
+                  };
+                  if (isCloud) {
+                    const { error } = await supabase.from("reviews").insert([
+                      {
+                        product_id: draft.productId,
+                        name: draft.name,
+                        rating: draft.rating,
+                        comment: draft.comment,
+                      },
+                    ]);
+                    if (error) {
+                      pushToast({
+                        type: "error",
+                        message: "Review failed to save. Try again.",
+                      });
+                      return;
+                    }
+                    const { data } = await supabase
+                      .from("reviews")
+                      .select("*")
+                      .eq("product_id", productId)
+                      .order("created_at", { ascending: false });
+                    if (Array.isArray(data)) {
+                      setReviews(
+                        data.map((r) => ({
+                          id:
+                            r.id ||
+                            `${r.product_id}-${r.created_at || Math.random()}`,
+                          productId: r.product_id,
+                          name: r.name,
+                          rating: Number(r.rating || 0),
+                          comment: r.comment || "",
+                          createdAt: r.created_at
+                            ? new Date(r.created_at).getTime()
+                            : Date.now(),
+                        })),
+                      );
+                    }
+                    pushToast({ type: "success", message: "Review posted." });
+                  } else {
+                    const next = addReview(draft);
+                    setReviews(
+                      next.filter((review) => review.productId === productId),
+                    );
+                    pushToast({ type: "success", message: "Review posted." });
+                  }
                   setReviewForm({ name: "", rating: 5, comment: "" });
                 }}
               >

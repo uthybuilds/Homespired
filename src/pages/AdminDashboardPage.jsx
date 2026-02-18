@@ -178,6 +178,23 @@ function AdminDashboardPage() {
         .order("created_at", { ascending: false });
       if (!isMounted) return;
       setAdminReviews(Array.isArray(data) ? data : []);
+      const channel = supabase
+        .channel("admin-reviews")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "reviews" },
+          (payload) => {
+            setAdminReviews((prev) => [payload.new, ...prev]);
+          },
+        )
+        .subscribe();
+      return () => {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {
+          void e;
+        }
+      };
     })();
     return () => {
       isMounted = false;
