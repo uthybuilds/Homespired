@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
@@ -8,12 +8,87 @@ import {
   getCatalog,
   getProductReviews,
 } from "../utils/catalogStore.js";
+import supabase from "../utils/supabaseClient.js";
 
 function ProductDetailPage() {
   const { productId } = useParams();
-  const catalog = useMemo(() => getCatalog(), []);
-  const product = catalog.find((item) => item.id === productId);
+  const [product, setProduct] = useState(() =>
+    getCatalog().find((item) => item.id === productId),
+  );
   const [reviews, setReviews] = useState(() => getProductReviews(productId));
+  const [loading, setLoading] = useState(
+    import.meta.env.VITE_STORAGE_MODE === "cloud",
+  );
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    let active = true;
+    const refreshFromStore = () => {
+      const next = getCatalog().find((x) => x.id === productId);
+      if (active) {
+        if (next) {
+          setProduct(next);
+          setLoading(false);
+        }
+      }
+    };
+    if (isCloud) {
+      (async () => {
+        const { data } = await supabase
+          .from("catalog")
+          .select("*")
+          .eq("id", productId)
+          .maybeSingle();
+        if (!active) return;
+        if (data) {
+          setProduct({
+            id: data.id,
+            name: data.name,
+            price: Number(data.price || 0),
+            category: data.category,
+            image: data.image_url || data.image,
+            description: data.description,
+            inventory: Number(data.inventory || 0),
+          });
+        }
+        setLoading(false);
+      })();
+    }
+    window.addEventListener("storage", refreshFromStore);
+    return () => {
+      active = false;
+      window.removeEventListener("storage", refreshFromStore);
+    };
+  }, [productId]);
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    let active = true;
+    if (isCloud) {
+      (async () => {
+        const { data } = await supabase
+          .from("reviews")
+          .select("*")
+          .eq("product_id", productId)
+          .order("created_at", { ascending: false });
+        if (!active) return;
+        if (Array.isArray(data)) {
+          setReviews(
+            data.map((r) => ({
+              productId: r.product_id,
+              name: r.name,
+              rating: Number(r.rating || 0),
+              comment: r.comment || "",
+              createdAt: r.created_at
+                ? new Date(r.created_at).getTime()
+                : Date.now(),
+            })),
+          );
+        }
+      })();
+    }
+    return () => {
+      active = false;
+    };
+  }, [productId]);
   const [reviewForm, setReviewForm] = useState({
     name: "",
     rating: 5,
@@ -25,6 +100,18 @@ function ProductDetailPage() {
     const total = reviews.reduce((sum, review) => sum + review.rating, 0);
     return total / reviews.length;
   }, [reviews]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-porcelain text-obsidian">
+        <Navbar />
+        <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-24 pt-32">
+          <h1 className="text-4xl font-semibold sm:text-5xl">Loading…</h1>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (

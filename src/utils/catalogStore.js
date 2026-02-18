@@ -127,6 +127,7 @@ async function __hydrateFromCloud() {
       { data: req },
       { data: set },
       { data: ana },
+      { data: rev },
     ] = await Promise.all([
       supabase
         .from("catalog")
@@ -150,6 +151,10 @@ async function __hydrateFromCloud() {
         .order("created_at", { ascending: false }),
       supabase.from("settings").select("*").limit(1).maybeSingle(),
       supabase.from("analytics").select("*").limit(1).maybeSingle(),
+      supabase
+        .from("reviews")
+        .select("*")
+        .order("created_at", { ascending: false }),
     ]);
     if (Array.isArray(cat)) {
       const mapped = cat.map((x) => ({
@@ -254,6 +259,15 @@ async function __hydrateFromCloud() {
         }
       : { storeViews: 0, cartAdds: 0, checkouts: 0, lastCheckoutAt: null };
     __memStore[analyticsKey] = mergedAnalytics;
+    if (Array.isArray(rev)) {
+      __memStore[reviewsKey] = rev.map((x) => ({
+        productId: x.product_id,
+        name: x.name || "",
+        rating: Number(x.rating || 0),
+        comment: x.comment || "",
+        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
+      }));
+    }
     __dispatchStorage();
   } catch (_err) {
     void _err;
@@ -712,6 +726,9 @@ export const upsertCustomer = (nextCustomer) => {
 };
 
 export const getReviews = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[reviewsKey]) ? __memStore[reviewsKey] : [];
+  }
   const raw = localStorage.getItem(reviewsKey);
   if (!raw) return [];
   try {
@@ -724,7 +741,20 @@ export const getReviews = () => {
 
 export const addReview = (review) => {
   const next = [review, ...getReviews()];
-  localStorage.setItem(reviewsKey, JSON.stringify(next));
+  if (__isCloud()) {
+    __memStore[reviewsKey] = next;
+    supabase.from("reviews").insert([
+      {
+        product_id: review.productId,
+        name: review.name || "",
+        rating: Number(review.rating || 0),
+        comment: review.comment || "",
+      },
+    ]);
+    __dispatchStorage();
+  } else {
+    localStorage.setItem(reviewsKey, JSON.stringify(next));
+  }
   return next;
 };
 
