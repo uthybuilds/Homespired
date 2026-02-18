@@ -1660,58 +1660,67 @@ function AdminDashboardPage() {
                     onSubmit={handleDiscountSubmit}
                     className="mt-6 space-y-4"
                   >
-                    <input
-                      value={discountForm.code}
-                      onChange={(event) =>
-                        setDiscountForm((prev) => ({
-                          ...prev,
-                          code: event.target.value,
-                        }))
-                      }
-                      type="text"
-                      placeholder="Code"
-                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                    />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <select
-                        value={discountForm.type}
-                        onChange={(event) =>
-                          setDiscountForm((prev) => ({
-                            ...prev,
-                            type: event.target.value,
-                          }))
-                        }
-                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                      >
-                        <option value="percent">Percent</option>
-                        <option value="fixed">Fixed</option>
-                      </select>
+                    <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                      <span>Code</span>
                       <input
-                        value={discountForm.value}
+                        value={discountForm.code}
                         onChange={(event) =>
                           setDiscountForm((prev) => ({
                             ...prev,
-                            value: event.target.value,
+                            code: event.target.value,
                           }))
                         }
-                        type="number"
-                        placeholder="Value"
+                        type="text"
                         className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
                       />
+                    </label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                        <span>Type</span>
+                        <select
+                          value={discountForm.type}
+                          onChange={(event) =>
+                            setDiscountForm((prev) => ({
+                              ...prev,
+                              type: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                        >
+                          <option value="percent">Percent</option>
+                          <option value="fixed">Fixed</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                        <span>Value</span>
+                        <input
+                          value={discountForm.value}
+                          onChange={(event) =>
+                            setDiscountForm((prev) => ({
+                              ...prev,
+                              value: event.target.value,
+                            }))
+                          }
+                          type="number"
+                          className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                        />
+                      </label>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <input
-                        value={discountForm.minSubtotal}
-                        onChange={(event) =>
-                          setDiscountForm((prev) => ({
-                            ...prev,
-                            minSubtotal: event.target.value,
-                          }))
-                        }
-                        type="number"
-                        placeholder="Minimum subtotal"
-                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                      />
+                      <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                        <span>Minimum subtotal</span>
+                        <input
+                          value={discountForm.minSubtotal}
+                          onChange={(event) =>
+                            setDiscountForm((prev) => ({
+                              ...prev,
+                              minSubtotal: event.target.value,
+                            }))
+                          }
+                          type="number"
+                          className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                        />
+                      </label>
                       <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
                         <span>Expiry date</span>
                         <input
