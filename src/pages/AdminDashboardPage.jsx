@@ -598,6 +598,29 @@ function AdminDashboardPage() {
           </h1>
         </div>
 
+        {isSettingsDirty ? (
+          <div className="rounded-3xl border border-ash/30 bg-linen p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-obsidian">
+                  Save all changes
+                </p>
+                <p className="text-xs text-ash">
+                  Apply updates across business settings and service pricing.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={hasSettingsErrors}
+                className="rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Save All Changes
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <div className="rounded-3xl border border-ash/30 bg-linen p-6">
@@ -849,14 +872,6 @@ function AdminDashboardPage() {
                   {settingsStatus.message}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={handleSaveSettings}
-                disabled={hasSettingsErrors || !isSettingsDirty}
-                className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                Save Settings
-              </button>
             </div>
           </div>
 
