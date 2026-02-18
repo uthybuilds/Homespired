@@ -9,9 +9,12 @@ import {
   clearCart,
   findActiveDiscount,
   getCart,
+  getCustomers,
+  getLastKnownEmail,
   getSettings,
   getNextOrderNumber,
   normalizeWhatsAppNumber,
+  setLastKnownEmail,
   trackAnalytics,
   upsertCustomer,
 } from "../utils/catalogStore.js";
@@ -23,14 +26,22 @@ function CheckoutPage() {
   const [shippingZone, setShippingZone] = useState(
     () => getSettings().shippingZones?.[0]?.id || "",
   );
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    notes: "",
+  const [form, setForm] = useState(() => {
+    const email = getLastKnownEmail();
+    const customer = email
+      ? getCustomers().find(
+          (entry) => entry.email?.toLowerCase() === email.toLowerCase(),
+        )
+      : null;
+    return {
+      name: customer?.name || "",
+      email,
+      phone: customer?.phone || "",
+      address: customer?.address || "",
+      city: customer?.city || "",
+      state: customer?.state || "",
+      notes: "",
+    };
   });
   const [delivery, setDelivery] = useState({ date: "", time: "" });
   const [proof, setProof] = useState(null);
@@ -98,7 +109,26 @@ function CheckoutPage() {
   const grandTotal = Math.max(0, total + shippingCost - discountAmount);
 
   const handleFormChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field !== "email") {
+      setForm((prev) => ({ ...prev, [field]: value }));
+      return;
+    }
+    const email = value.trim().toLowerCase();
+    const customer = email
+      ? getCustomers().find((entry) => entry.email?.toLowerCase() === email)
+      : null;
+    if (value) {
+      setLastKnownEmail(value);
+    }
+    setForm((prev) => ({
+      ...prev,
+      email: value,
+      name: customer?.name || prev.name,
+      phone: customer?.phone || prev.phone,
+      address: customer?.address || prev.address,
+      city: customer?.city || prev.city,
+      state: customer?.state || prev.state,
+    }));
   };
 
   const uploadProof = async (file) => {

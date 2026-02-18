@@ -10,6 +10,7 @@ const analyticsKey = "homespired_analytics_v1";
 const orderNumberKey = "homespired_order_number_v1";
 const requestNumberKey = "homespired_request_number_v1";
 const cartUpdatedKey = "homespired_cart_updated_v1";
+const lastEmailKey = "homespired_last_email_v1";
 
 export const defaultSettings = {
   whatsappNumber: "09026561373",
@@ -214,6 +215,16 @@ export const getSettings = () => {
   } catch {
     return defaultSettings;
   }
+};
+
+export const getLastKnownEmail = () => {
+  const raw = localStorage.getItem(lastEmailKey);
+  return raw || "";
+};
+
+export const setLastKnownEmail = (email) => {
+  if (!email) return;
+  localStorage.setItem(lastEmailKey, email);
 };
 
 export const saveSettings = (settings) => {

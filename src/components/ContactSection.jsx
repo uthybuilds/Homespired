@@ -1,16 +1,29 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { invokeEdgeFunction } from "../utils/supabaseClient.js";
-import { getSettings } from "../utils/catalogStore.js";
+import {
+  getCustomers,
+  getLastKnownEmail,
+  getSettings,
+  setLastKnownEmail,
+} from "../utils/catalogStore.js";
 
 const Motion = motion;
 
 function ContactSection() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
+  const [form, setForm] = useState(() => {
+    const email = getLastKnownEmail();
+    const customer = email
+      ? getCustomers().find(
+          (entry) => entry.email?.toLowerCase() === email.toLowerCase(),
+        )
+      : null;
+    return {
+      name: customer?.name || "",
+      email,
+      phone: customer?.phone || "",
+      message: "",
+    };
   });
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [settings, setSettings] = useState(() => getSettings());
@@ -26,7 +39,23 @@ function ContactSection() {
   }, []);
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field !== "email") {
+      setForm((prev) => ({ ...prev, [field]: value }));
+      return;
+    }
+    const email = value.trim().toLowerCase();
+    const customer = email
+      ? getCustomers().find((entry) => entry.email?.toLowerCase() === email)
+      : null;
+    if (value) {
+      setLastKnownEmail(value);
+    }
+    setForm((prev) => ({
+      ...prev,
+      email: value,
+      name: customer?.name || prev.name,
+      phone: customer?.phone || prev.phone,
+    }));
   };
 
   const handleSubmit = async (event) => {

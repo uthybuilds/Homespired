@@ -69,7 +69,6 @@ test("class enrollment submits payment proof and sends email", async ({
   await page.getByPlaceholder("Full name").fill("Tomi Ade");
   await page.getByPlaceholder("Email address").fill("tomi@example.com");
   await page.getByPlaceholder("Phone number").fill("09012345678");
-  await page.getByPlaceholder("Project address").fill("Lekki");
   await page
     .getByPlaceholder("Tell us about your goals")
     .fill("Ready to start.");

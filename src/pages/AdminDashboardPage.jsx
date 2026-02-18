@@ -433,7 +433,6 @@ function AdminDashboardPage() {
       `Total: ₦${Number(order.total || 0).toLocaleString()}`,
       order.deliveryDate ? `Delivery Date: ${order.deliveryDate}` : null,
       order.deliveryTime ? `Delivery Time: ${order.deliveryTime}` : null,
-      order.proofUrl ? `Payment Proof: ${order.proofUrl}` : null,
     ].filter(Boolean);
     try {
       await invokeEdgeFunction("form-delivery", {
@@ -447,7 +446,6 @@ function AdminDashboardPage() {
           total: Number(order.total || 0),
           deliveryDate: order.deliveryDate || "",
           deliveryTime: order.deliveryTime || "",
-          proofUrl: order.proofUrl || "",
           lines,
         },
       });
@@ -476,7 +474,6 @@ function AdminDashboardPage() {
       `${typeLabel} Request`,
       request.optionTitle ? `Package: ${request.optionTitle}` : null,
       `Total: ₦${Number(request.price || 0).toLocaleString()}`,
-      request.proofUrl ? `Payment Proof: ${request.proofUrl}` : null,
     ].filter(Boolean);
     try {
       await invokeEdgeFunction("form-delivery", {
@@ -488,7 +485,6 @@ function AdminDashboardPage() {
           clientEmail: email,
           clientPhone: request.customer?.phone || "",
           total: Number(request.price || 0),
-          proofUrl: request.proofUrl || "",
           lines,
         },
       });
@@ -1652,7 +1648,7 @@ function AdminDashboardPage() {
               {activeSection === "discounts" ? (
                 <section
                   id="discounts"
-                  className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
+                  className="overflow-hidden rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
                   <h2 className="text-xl font-semibold text-obsidian">
                     Discounts
@@ -1716,17 +1712,20 @@ function AdminDashboardPage() {
                         placeholder="Minimum subtotal"
                         className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
                       />
-                      <input
-                        value={discountForm.expiresAt}
-                        onChange={(event) =>
-                          setDiscountForm((prev) => ({
-                            ...prev,
-                            expiresAt: event.target.value,
-                          }))
-                        }
-                        type="date"
-                        className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                      />
+                      <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                        <span>Expiry date</span>
+                        <input
+                          value={discountForm.expiresAt}
+                          onChange={(event) =>
+                            setDiscountForm((prev) => ({
+                              ...prev,
+                              expiresAt: event.target.value,
+                            }))
+                          }
+                          type="date"
+                          className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-2 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                        />
+                      </label>
                     </div>
                     <label className="flex items-center gap-2 text-xs text-ash">
                       <input

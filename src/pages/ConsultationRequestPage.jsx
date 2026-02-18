@@ -7,7 +7,11 @@ import {
   addRequest,
   getNextRequestNumber,
   getSettings,
+  getCustomers,
+  getLastKnownEmail,
   normalizeWhatsAppNumber,
+  setLastKnownEmail,
+  upsertCustomer,
 } from "../utils/catalogStore.js";
 import { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
@@ -15,14 +19,22 @@ function ConsultationRequestPage({ type }) {
   const { optionId } = useParams();
   const { pushToast } = useToast();
   const [settings, setSettings] = useState(() => getSettings());
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    city: "",
-    state: "",
-    notes: "",
+  const [form, setForm] = useState(() => {
+    const email = getLastKnownEmail();
+    const customer = email
+      ? getCustomers().find(
+          (entry) => entry.email?.toLowerCase() === email.toLowerCase(),
+        )
+      : null;
+    return {
+      name: customer?.name || "",
+      phone: customer?.phone || "",
+      email,
+      address: customer?.address || "",
+      city: customer?.city || "",
+      state: customer?.state || "",
+      notes: "",
+    };
   });
   const [proof, setProof] = useState(null);
   const [proofName, setProofName] = useState("");
@@ -50,7 +62,26 @@ function ConsultationRequestPage({ type }) {
   }, [optionId, settings, type]);
 
   const handleFormChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field !== "email") {
+      setForm((prev) => ({ ...prev, [field]: value }));
+      return;
+    }
+    const email = value.trim().toLowerCase();
+    const customer = email
+      ? getCustomers().find((entry) => entry.email?.toLowerCase() === email)
+      : null;
+    if (value) {
+      setLastKnownEmail(value);
+    }
+    setForm((prev) => ({
+      ...prev,
+      email: value,
+      name: customer?.name || prev.name,
+      phone: customer?.phone || prev.phone,
+      address: customer?.address || prev.address,
+      city: customer?.city || prev.city,
+      state: customer?.state || prev.state,
+    }));
   };
 
   const uploadProof = async (file) => {
@@ -180,6 +211,15 @@ function ConsultationRequestPage({ type }) {
           proofUrl: "",
           createdAt: Date.now(),
         });
+        upsertCustomer({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          lastOrderAt: Date.now(),
+        });
         setStatus({ type: "idle", message: "" });
         pushToast({
           type: "success",
@@ -273,6 +313,15 @@ function ConsultationRequestPage({ type }) {
         notes: form.notes,
         proofUrl,
         createdAt: Date.now(),
+      });
+      upsertCustomer({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        lastOrderAt: Date.now(),
       });
       setStatus({ type: "idle", message: "" });
       pushToast({
@@ -426,36 +475,40 @@ function ConsultationRequestPage({ type }) {
               required
               className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
             />
-            <input
-              value={form.address}
-              onChange={(event) =>
-                handleFormChange("address", event.target.value)
-              }
-              type="text"
-              placeholder="Project address"
-              required={!option.redirectOnly}
-              className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input
-                value={form.city}
-                onChange={(event) =>
-                  handleFormChange("city", event.target.value)
-                }
-                type="text"
-                placeholder="City"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-              <input
-                value={form.state}
-                onChange={(event) =>
-                  handleFormChange("state", event.target.value)
-                }
-                type="text"
-                placeholder="State"
-                className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-              />
-            </div>
+            {type !== "class" ? (
+              <>
+                <input
+                  value={form.address}
+                  onChange={(event) =>
+                    handleFormChange("address", event.target.value)
+                  }
+                  type="text"
+                  placeholder="Project address"
+                  required={!option.redirectOnly}
+                  className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <input
+                    value={form.city}
+                    onChange={(event) =>
+                      handleFormChange("city", event.target.value)
+                    }
+                    type="text"
+                    placeholder="City"
+                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                  />
+                  <input
+                    value={form.state}
+                    onChange={(event) =>
+                      handleFormChange("state", event.target.value)
+                    }
+                    type="text"
+                    placeholder="State"
+                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                  />
+                </div>
+              </>
+            ) : null}
             <textarea
               value={form.notes}
               onChange={(event) =>
