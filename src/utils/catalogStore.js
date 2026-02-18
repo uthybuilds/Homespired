@@ -240,24 +240,15 @@ async function __hydrateFromCloud() {
       }));
     }
     if (Array.isArray(req)) {
-      localStorage.setItem(
-        requestsKey,
-        JSON.stringify(
-          req.map((x) => ({
-            id: x.id,
-            type: x.type || "request",
-            payload: x.payload || {},
-            status: x.status || "Pending",
-            number: x.number || null,
-            createdAt: x.created_at
-              ? new Date(x.created_at).getTime()
-              : Date.now(),
-            updatedAt: x.updated_at
-              ? new Date(x.updated_at).getTime()
-              : Date.now(),
-          })),
-        ),
-      );
+      __memStore[requestsKey] = req.map((x) => ({
+        id: x.id,
+        type: x.type || "request",
+        payload: x.payload || {},
+        status: x.status || "Pending",
+        number: x.number || null,
+        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
+        updatedAt: x.updated_at ? new Date(x.updated_at).getTime() : Date.now(),
+      }));
     }
     const mergedSettings = set
       ? {
@@ -489,6 +480,9 @@ export const clearCart = () => {
 };
 
 export const getSettings = () => {
+  if (__isCloud()) {
+    return __memStore[settingsKey] || defaultSettings;
+  }
   const raw = localStorage.getItem(settingsKey);
   if (!raw) return defaultSettings;
   try {
@@ -526,11 +520,11 @@ export const setLastKnownEmail = (email) => {
 };
 
 export const saveSettings = (settings) => {
-  localStorage.setItem(settingsKey, JSON.stringify(settings));
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("settings-updated"));
-  }
   if (__isCloud()) {
+    __memStore[settingsKey] = settings;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("settings-updated"));
+    }
     supabase.from("settings").upsert([
       {
         id: "default",
@@ -545,10 +539,18 @@ export const saveSettings = (settings) => {
         inventory_alert_threshold: settings.inventoryAlertThreshold,
       },
     ]);
+    return;
+  }
+  localStorage.setItem(settingsKey, JSON.stringify(settings));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("settings-updated"));
   }
 };
 
 export const getOrders = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[ordersKey]) ? __memStore[ordersKey] : [];
+  }
   const raw = localStorage.getItem(ordersKey);
   if (!raw) return [];
   try {
@@ -560,8 +562,8 @@ export const getOrders = () => {
 };
 
 export const saveOrders = (orders) => {
-  localStorage.setItem(ordersKey, JSON.stringify(orders));
   if (__isCloud()) {
+    __memStore[ordersKey] = Array.isArray(orders) ? orders : [];
     const rows = orders.map((o) => ({
       id: o.id,
       number: o.number,
@@ -579,10 +581,17 @@ export const saveOrders = (orders) => {
       updated_at: o.updatedAt ? new Date(o.updatedAt).toISOString() : null,
     }));
     supabase.from("orders").upsert(rows, { onConflict: "id" });
+    return;
   }
+  localStorage.setItem(ordersKey, JSON.stringify(orders));
 };
 
 export const getRequests = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[requestsKey])
+      ? __memStore[requestsKey]
+      : [];
+  }
   const raw = localStorage.getItem(requestsKey);
   if (!raw) return [];
   try {
@@ -594,11 +603,11 @@ export const getRequests = () => {
 };
 
 export const saveRequests = (requests) => {
-  localStorage.setItem(requestsKey, JSON.stringify(requests));
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("requests-updated"));
-  }
   if (__isCloud()) {
+    __memStore[requestsKey] = Array.isArray(requests) ? requests : [];
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("requests-updated"));
+    }
     const rows = requests.map((r) => ({
       id: r.id,
       type: r.type || "request",
@@ -609,6 +618,11 @@ export const saveRequests = (requests) => {
       updated_at: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
     }));
     supabase.from("requests").upsert(rows, { onConflict: "id" });
+    return;
+  }
+  localStorage.setItem(requestsKey, JSON.stringify(requests));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("requests-updated"));
   }
 };
 
@@ -739,6 +753,11 @@ export const updateRequest = (requestId, updates) => {
 };
 
 export const getCustomers = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[customersKey])
+      ? __memStore[customersKey]
+      : [];
+  }
   const raw = localStorage.getItem(customersKey);
   if (!raw) return [];
   try {
@@ -750,8 +769,8 @@ export const getCustomers = () => {
 };
 
 export const saveCustomers = (customers) => {
-  localStorage.setItem(customersKey, JSON.stringify(customers));
   if (__isCloud()) {
+    __memStore[customersKey] = Array.isArray(customers) ? customers : [];
     const rows = customers.map((c) => ({
       email: c.email,
       name: c.name || "",
@@ -761,7 +780,9 @@ export const saveCustomers = (customers) => {
       state: c.state || "",
     }));
     supabase.from("customers").upsert(rows, { onConflict: "email" });
+    return;
   }
+  localStorage.setItem(customersKey, JSON.stringify(customers));
 };
 
 export const upsertCustomer = (nextCustomer) => {
@@ -847,6 +868,11 @@ export const getProductReviews = (productId) => {
 };
 
 export const getDiscounts = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[discountsKey])
+      ? __memStore[discountsKey]
+      : [];
+  }
   const raw = localStorage.getItem(discountsKey);
   if (!raw) return [];
   try {
@@ -858,8 +884,8 @@ export const getDiscounts = () => {
 };
 
 export const saveDiscounts = (discounts) => {
-  localStorage.setItem(discountsKey, JSON.stringify(discounts));
   if (__isCloud()) {
+    __memStore[discountsKey] = Array.isArray(discounts) ? discounts : [];
     const rows = discounts.map((d) => ({
       code: d.code,
       type: d.type,
@@ -869,7 +895,9 @@ export const saveDiscounts = (discounts) => {
       active: d.active !== false,
     }));
     supabase.from("discounts").upsert(rows, { onConflict: "code" });
+    return;
   }
+  localStorage.setItem(discountsKey, JSON.stringify(discounts));
 };
 
 export const addDiscount = (discount) => {
@@ -943,6 +971,16 @@ export const findActiveDiscount = (code) => {
 };
 
 export const getAnalytics = () => {
+  if (__isCloud()) {
+    return (
+      __memStore[analyticsKey] || {
+        storeViews: 0,
+        cartAdds: 0,
+        checkouts: 0,
+        lastCheckoutAt: null,
+      }
+    );
+  }
   const raw = localStorage.getItem(analyticsKey);
   if (!raw) {
     return {
@@ -971,8 +1009,8 @@ export const getAnalytics = () => {
 };
 
 export const saveAnalytics = (analytics) => {
-  localStorage.setItem(analyticsKey, JSON.stringify(analytics));
   if (__isCloud()) {
+    __memStore[analyticsKey] = analytics;
     supabase.from("analytics").upsert([
       {
         id: "default",
@@ -984,7 +1022,9 @@ export const saveAnalytics = (analytics) => {
           : null,
       },
     ]);
+    return;
   }
+  localStorage.setItem(analyticsKey, JSON.stringify(analytics));
 };
 
 export const trackAnalytics = (field) => {
