@@ -2,6 +2,7 @@ const catalogKey = "homespired_catalog_v1";
 const cartKey = "homespired_cart_v1";
 const settingsKey = "homespired_settings_v1";
 const ordersKey = "homespired_orders_v1";
+const requestsKey = "homespired_requests_v1";
 const customersKey = "homespired_customers_v1";
 const reviewsKey = "homespired_reviews_v1";
 const discountsKey = "homespired_discounts_v1";
@@ -237,6 +238,24 @@ export const saveOrders = (orders) => {
   localStorage.setItem(ordersKey, JSON.stringify(orders));
 };
 
+export const getRequests = () => {
+  const raw = localStorage.getItem(requestsKey);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveRequests = (requests) => {
+  localStorage.setItem(requestsKey, JSON.stringify(requests));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("requests-updated"));
+  }
+};
+
 export const getNextOrderNumber = () => {
   const raw = localStorage.getItem(orderNumberKey);
   const next = Number(raw || 0) + 1;
@@ -257,6 +276,12 @@ export const addOrder = (order) => {
   return next;
 };
 
+export const addRequest = (request) => {
+  const next = [request, ...getRequests()];
+  saveRequests(next);
+  return next;
+};
+
 export const updateOrder = (orderId, updates) => {
   const next = getOrders().map((order) =>
     order.id === orderId
@@ -269,6 +294,21 @@ export const updateOrder = (orderId, updates) => {
       : order,
   );
   saveOrders(next);
+  return next;
+};
+
+export const updateRequest = (requestId, updates) => {
+  const next = getRequests().map((request) =>
+    request.id === requestId
+      ? {
+          ...request,
+          ...updates,
+          updatedAt:
+            updates.updatedAt === undefined ? Date.now() : updates.updatedAt,
+        }
+      : request,
+  );
+  saveRequests(next);
   return next;
 };
 

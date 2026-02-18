@@ -3,6 +3,7 @@ import { NavLink, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import {
+  addRequest,
   getNextRequestNumber,
   getSettings,
   normalizeWhatsAppNumber,
@@ -156,6 +157,28 @@ function ConsultationRequestPage({ type }) {
         const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
           message,
         )}`;
+        addRequest({
+          id: `request-${Date.now()}`,
+          requestNumber,
+          requestRef,
+          type,
+          optionId: option.id,
+          optionTitle: option.title,
+          price,
+          redirectOnly: true,
+          status: "Pending",
+          customer: {
+            name: form.name,
+            phone: form.phone,
+            email: form.email,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+          },
+          notes: form.notes,
+          proofUrl: "",
+          createdAt: Date.now(),
+        });
         setStatus({
           type: "success",
           message: "Request ready. We will confirm shortly.",
@@ -227,6 +250,28 @@ function ConsultationRequestPage({ type }) {
         });
         return;
       }
+      addRequest({
+        id: `request-${Date.now()}`,
+        requestNumber,
+        requestRef,
+        type,
+        optionId: option.id,
+        optionTitle: option.title,
+        price,
+        redirectOnly: false,
+        status: "Pending",
+        customer: {
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+        },
+        notes: form.notes,
+        proofUrl,
+        createdAt: Date.now(),
+      });
       setStatus({
         type: "success",
         message: "Request received. We will confirm shortly.",

@@ -11,10 +11,12 @@ import {
   getCustomers,
   getDiscounts,
   getOrders,
+  getRequests,
   getSettings,
   removeCatalogItem,
   removeDiscount,
   saveSettings,
+  updateRequest,
   updateDiscount,
   updateOrder,
 } from "../utils/catalogStore.js";
@@ -42,6 +44,7 @@ const initialForm = {
 function AdminDashboardPage() {
   const [catalog, setCatalog] = useState(() => getCatalog());
   const [orders, setOrders] = useState(() => getOrders());
+  const [requests, setRequests] = useState(() => getRequests());
   const [customers, setCustomers] = useState(() => getCustomers());
   const [discounts, setDiscounts] = useState(() => getDiscounts());
   const [analytics, setAnalytics] = useState(() => getAnalytics());
@@ -288,13 +291,16 @@ function AdminDashboardPage() {
     const sync = () => {
       setCatalog(getCatalog());
       setOrders(getOrders());
+      setRequests(getRequests());
       setCustomers(getCustomers());
       setDiscounts(getDiscounts());
       setAnalytics(getAnalytics());
     };
     window.addEventListener("storage", sync);
+    window.addEventListener("requests-updated", sync);
     return () => {
       window.removeEventListener("storage", sync);
+      window.removeEventListener("requests-updated", sync);
     };
   }, []);
 
@@ -335,6 +341,47 @@ function AdminDashboardPage() {
     }
   };
 
+  const sendRequestConfirmation = async (request) => {
+    const email = request.customer?.email;
+    if (!email) return;
+    const typeLabel =
+      request.type === "inspection"
+        ? "Inspection"
+        : request.type === "class"
+          ? "Class"
+          : "Consultation";
+    const lines = [
+      "Payment Confirmed",
+      request.requestRef || request.id,
+      "",
+      `Client: ${request.customer?.name || "Guest"}`,
+      `Email: ${email}`,
+      request.customer?.phone ? `Phone: ${request.customer.phone}` : null,
+      "",
+      `${typeLabel} Request`,
+      request.optionTitle ? `Package: ${request.optionTitle}` : null,
+      `Total: ₦${Number(request.price || 0).toLocaleString()}`,
+      request.proofUrl ? `Payment Proof: ${request.proofUrl}` : null,
+    ].filter(Boolean);
+    try {
+      await invokeEdgeFunction("form-delivery", {
+        type: "payment_confirmed",
+        payload: {
+          requestType: "Payment Confirmed",
+          orderRef: request.requestRef || request.id,
+          clientName: request.customer?.name || "Guest",
+          clientEmail: email,
+          clientPhone: request.customer?.phone || "",
+          total: Number(request.price || 0),
+          proofUrl: request.proofUrl || "",
+          lines,
+        },
+      });
+    } catch {
+      return;
+    }
+  };
+
   const handleOrderStatusChange = async (orderId, nextStatus) => {
     const current = orders.find((order) => order.id === orderId);
     if (!current) return;
@@ -349,6 +396,21 @@ function AdminDashboardPage() {
       const updated = next.find((order) => order.id === orderId);
       if (updated) {
         await sendPaymentConfirmation(updated);
+      }
+    }
+  };
+
+  const handleRequestStatusChange = async (requestId, nextStatus) => {
+    const current = requests.find((request) => request.id === requestId);
+    if (!current) return;
+    const next = updateRequest(requestId, {
+      status: nextStatus,
+    });
+    setRequests(next);
+    if (nextStatus === "Confirmed" && current.status !== "Confirmed") {
+      const updated = next.find((request) => request.id === requestId);
+      if (updated) {
+        await sendRequestConfirmation(updated);
       }
     }
   };
@@ -446,11 +508,26 @@ function AdminDashboardPage() {
     "Cancelled",
   ];
 
+  const requestStatusOptions = ["Pending", "Confirmed", "Declined"];
+
+  const getRequestTypeLabel = (requestType) =>
+    requestType === "inspection"
+      ? "Inspection"
+      : requestType === "class"
+        ? "Class"
+        : "Consultation";
+
   const sortedOrders = useMemo(() => {
     return [...orders].sort(
       (a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0),
     );
   }, [orders]);
+
+  const sortedRequests = useMemo(() => {
+    return [...requests].sort(
+      (a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0),
+    );
+  }, [requests]);
 
   const customerStats = useMemo(() => {
     return customers.map((customer) => {
@@ -1041,6 +1118,115 @@ function AdminDashboardPage() {
                       </a>
                     ) : null}
                   </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-ash/30 bg-porcelain p-6">
+          <h2 className="text-xl font-semibold text-obsidian">Requests</h2>
+          <p className="mt-2 text-sm text-ash">
+            Review consultation, class, and inspection submissions.
+          </p>
+          <div className="mt-6 grid gap-4">
+            {sortedRequests.length === 0 ? (
+              <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
+                Requests will appear here after form submissions.
+              </div>
+            ) : (
+              sortedRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-2xl border border-ash/30 bg-linen p-5"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        {request.requestRef || request.id}
+                      </p>
+                      <p className="mt-2 text-sm text-ash">
+                        {request.createdAt
+                          ? new Date(request.createdAt).toLocaleString()
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <select
+                        value={request.status || "Pending"}
+                        onChange={(event) =>
+                          handleRequestStatusChange(
+                            request.id,
+                            event.target.value,
+                          )
+                        }
+                        className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                      >
+                        {requestStatusOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      {request.proofUrl ? (
+                        <a
+                          href={request.proofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                        >
+                          View Proof
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Client
+                      </p>
+                      <p className="mt-2 text-sm text-obsidian">
+                        {request.customer?.name || "Guest"}
+                      </p>
+                      <p className="text-xs text-ash">
+                        {request.customer?.email || ""}
+                      </p>
+                      <p className="text-xs text-ash">
+                        {request.customer?.phone || ""}
+                      </p>
+                      <p className="text-xs text-ash">
+                        {[
+                          request.customer?.address,
+                          request.customer?.city,
+                          request.customer?.state,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Request
+                      </p>
+                      <p className="mt-2 text-sm text-obsidian">
+                        {getRequestTypeLabel(request.type)}
+                      </p>
+                      <p className="text-xs text-ash">
+                        {request.optionTitle || ""}
+                      </p>
+                      <p className="text-xs text-ash">
+                        Total: ₦{Number(request.price || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  {request.notes ? (
+                    <div className="mt-4 text-sm text-ash">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Notes
+                      </p>
+                      <p className="mt-2">{request.notes}</p>
+                    </div>
+                  ) : null}
                 </div>
               ))
             )}
