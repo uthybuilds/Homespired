@@ -397,30 +397,36 @@ function CheckoutPage() {
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <input
-                    value={delivery.date}
-                    onChange={(event) =>
-                      setDelivery((prev) => ({
-                        ...prev,
-                        date: event.target.value,
-                      }))
-                    }
-                    type="date"
-                    required
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
-                  <input
-                    value={delivery.time}
-                    onChange={(event) =>
-                      setDelivery((prev) => ({
-                        ...prev,
-                        time: event.target.value,
-                      }))
-                    }
-                    type="time"
-                    required
-                    className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
-                  />
+                  <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                    <span>Delivery date</span>
+                    <input
+                      value={delivery.date}
+                      onChange={(event) =>
+                        setDelivery((prev) => ({
+                          ...prev,
+                          date: event.target.value,
+                        }))
+                      }
+                      type="date"
+                      required
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 text-[10px] uppercase tracking-[0.3em] text-ash">
+                    <span>Delivery time</span>
+                    <input
+                      value={delivery.time}
+                      onChange={(event) =>
+                        setDelivery((prev) => ({
+                          ...prev,
+                          time: event.target.value,
+                        }))
+                      }
+                      type="time"
+                      required
+                      className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
+                    />
+                  </label>
                 </div>
                 <select
                   value={effectiveZone}

@@ -126,8 +126,12 @@ serve(async (req: Request) => {
     ["City", payload.city],
     ["State", payload.state],
     ["Notes", payload.notes || payload.message],
-    ["Payment Proof", proofValue],
-  ].filter(([, value]) => String(value || "").trim().length > 0);
+  ].filter(([, value]) => String(value || "").trim().length > 0) as Array<
+    [string, string]
+  >;
+  if (type !== "payment_confirmed" && String(proofValue).trim().length > 0) {
+    fields.push(["Payment Proof", proofValue]);
+  }
 
   const payloadLines: string[] = Array.isArray(payload.lines)
     ? payload.lines.map((line: string) => String(line))
