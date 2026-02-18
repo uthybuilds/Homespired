@@ -99,6 +99,17 @@ function AdminDashboardPage() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  useEffect(() => {
+    if (!isMenuOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
+
   const handleSectionChange = (nextSection) => {
     setActiveSection(nextSection);
     setIsMenuOpen(false);
@@ -1920,11 +1931,12 @@ function AdminDashboardPage() {
         <button
           type="button"
           onClick={() => setIsMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-obsidian/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-obsidian/70 backdrop-blur-sm lg:hidden"
+          aria-label="Close menu"
         />
       ) : null}
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col gap-6 bg-porcelain px-6 pb-10 pt-10 shadow-[0_24px_60px_rgba(15,15,15,0.2)] transition-transform lg:hidden ${
+        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col gap-6 overflow-y-auto bg-porcelain px-6 pb-10 pt-10 shadow-[0_24px_60px_rgba(15,15,15,0.2)] transition-transform lg:hidden ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
