@@ -229,11 +229,15 @@ function AdminDashboardPage() {
     setSettingsStatus({ type: "idle", message: "" });
   };
 
+  const normalizeNumberInput = (value) => (value === "" ? "" : Number(value));
+
   const updateInspectionPrice = (id, price) => {
     setSettings((prev) => ({
       ...prev,
       inspectionOptions: prev.inspectionOptions.map((option) =>
-        option.id === id ? { ...option, price: Number(price) } : option,
+        option.id === id
+          ? { ...option, price: normalizeNumberInput(price) }
+          : option,
       ),
     }));
     setSettingsStatus({ type: "idle", message: "" });
@@ -243,7 +247,9 @@ function AdminDashboardPage() {
     setSettings((prev) => ({
       ...prev,
       consultationOptions: prev.consultationOptions.map((option) =>
-        option.id === id ? { ...option, price: Number(price) } : option,
+        option.id === id
+          ? { ...option, price: normalizeNumberInput(price) }
+          : option,
       ),
     }));
     setSettingsStatus({ type: "idle", message: "" });
@@ -253,7 +259,9 @@ function AdminDashboardPage() {
     setSettings((prev) => ({
       ...prev,
       classOptions: (prev.classOptions || []).map((option) =>
-        option.id === id ? { ...option, price: Number(price) } : option,
+        option.id === id
+          ? { ...option, price: normalizeNumberInput(price) }
+          : option,
       ),
     }));
     setSettingsStatus({ type: "idle", message: "" });
@@ -263,7 +271,7 @@ function AdminDashboardPage() {
     setSettings((prev) => ({
       ...prev,
       shippingZones: prev.shippingZones.map((zone) =>
-        zone.id === id ? { ...zone, price: Number(price) } : zone,
+        zone.id === id ? { ...zone, price: normalizeNumberInput(price) } : zone,
       ),
     }));
     setSettingsStatus({ type: "idle", message: "" });
@@ -845,7 +853,7 @@ function AdminDashboardPage() {
                 onChange={(event) =>
                   handleSettingChange(
                     "inventoryAlertThreshold",
-                    Number(event.target.value),
+                    event.target.value,
                   )
                 }
                 type="number"
