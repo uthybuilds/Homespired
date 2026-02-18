@@ -1,4 +1,4 @@
-import supabase from "./supabaseClient.js";
+import supabase, { invokeEdgeFunction } from "./supabaseClient.js";
 const storageMode = import.meta.env.VITE_STORAGE_MODE || "local";
 let __cloudHydrated = false;
 const __isCloud = () =>
@@ -42,16 +42,28 @@ const __memStore = {
 };
 
 async function __loadCartFromCloud() {
-  if (!__isCloud() || !__userId) return;
-  const { data, error } = await supabase
-    .from("carts")
-    .select("*")
-    .eq("user_id", __userId)
-    .maybeSingle();
-  if (error) {
+  if (!__isCloud()) return;
+  if (__userId) {
+    const { data, error } = await supabase
+      .from("carts")
+      .select("*")
+      .eq("user_id", __userId)
+      .maybeSingle();
+    if (!error) {
+      __memStore[cartKey] = Array.isArray(data?.items) ? data.items : [];
+      __memStore[cartUpdatedKey] = Date.now();
+      __dispatchStorage();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("cart-updated"));
+      }
+    }
     return;
   }
-  __memStore[cartKey] = Array.isArray(data?.items) ? data.items : [];
+  const ensure = await invokeEdgeFunction("guest-cart", { action: "ensure" });
+  void ensure;
+  const { data } = await invokeEdgeFunction("guest-cart", { action: "read" });
+  const items = Array.isArray(data?.items) ? data.items : [];
+  __memStore[cartKey] = items;
   __memStore[cartUpdatedKey] = Date.now();
   __dispatchStorage();
   if (typeof window !== "undefined") {
@@ -370,6 +382,9 @@ export const removeCatalogItem = (id) => {
 };
 
 export const getCart = () => {
+  if (__isCloud()) {
+    return Array.isArray(__memStore[cartKey]) ? __memStore[cartKey] : [];
+  }
   const raw = localStorage.getItem(cartKey);
   if (!raw) return [];
   try {
@@ -393,6 +408,8 @@ export const saveCart = (items) => {
             onConflict: "user_id",
           },
         );
+    } else {
+      invokeEdgeFunction("guest-cart", { action: "write", items });
     }
     __dispatchStorage();
     if (typeof window !== "undefined") {
