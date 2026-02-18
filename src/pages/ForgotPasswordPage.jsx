@@ -20,7 +20,7 @@ function ForgotPasswordPage() {
     }
     setStatus({
       type: "success",
-      message: "Enter the 8-digit code sent to your email.",
+      message: "Check your email for the password reset link.",
     });
   };
 

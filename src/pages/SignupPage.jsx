@@ -42,9 +42,9 @@ function SignupPage() {
     });
     setStatus({
       type: "success",
-      message: "Enter the 8-digit code sent to your email to confirm.",
+      message: "Check your email to confirm your account.",
     });
-    navigate(`/confirm-email?email=${encodeURIComponent(form.email.trim())}`);
+    navigate("/confirm-email");
   };
 
   return (

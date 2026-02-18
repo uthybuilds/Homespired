@@ -350,7 +350,6 @@ function CheckoutPage() {
                     }
                     type="text"
                     placeholder="City"
-                    required
                     className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
                   />
                   <input
@@ -360,7 +359,6 @@ function CheckoutPage() {
                     }
                     type="text"
                     placeholder="State"
-                    required
                     className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
                   />
                 </div>
@@ -414,7 +412,6 @@ function CheckoutPage() {
                   }
                   rows="3"
                   placeholder="Delivery notes"
-                  required
                   className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
                 />
                 <div className="rounded-2xl border border-dashed border-ash/40 bg-white/70 px-4 py-4">

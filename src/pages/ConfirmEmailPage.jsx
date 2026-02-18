@@ -107,7 +107,7 @@ function ConfirmEmailPage() {
               ? canResetPassword
                 ? "Create a new password for your Homespired account."
                 : "Enter the 8-digit code to reset your password."
-              : "Check your inbox to confirm your account."}
+              : "Check your email to confirm your account."}
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
             {mode === "recovery"

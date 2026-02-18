@@ -381,7 +381,7 @@ function ConsultationRequestPage({ type }) {
               }
               type="text"
               placeholder="Project address"
-              required
+              required={!option.redirectOnly}
               className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
             />
             <div className="grid gap-4 sm:grid-cols-2">
@@ -392,7 +392,6 @@ function ConsultationRequestPage({ type }) {
                 }
                 type="text"
                 placeholder="City"
-                required
                 className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
               />
               <input
@@ -402,7 +401,6 @@ function ConsultationRequestPage({ type }) {
                 }
                 type="text"
                 placeholder="State"
-                required
                 className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
               />
             </div>
@@ -417,7 +415,7 @@ function ConsultationRequestPage({ type }) {
                   ? "Tell us about your goals"
                   : "Tell us about your project"
               }
-              required
+              required={!option.redirectOnly}
               className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
             />
             {!option.redirectOnly && (
