@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import { useToast } from "../components/useToast.js";
+import supabase from "../utils/supabaseClient.js";
 import {
   addOrder,
   adjustInventory,
@@ -17,6 +18,7 @@ import {
   setLastKnownEmail,
   trackAnalytics,
   upsertCustomer,
+  nextCounter,
 } from "../utils/catalogStore.js";
 
 function CheckoutPage() {
@@ -49,6 +51,41 @@ function CheckoutPage() {
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [discountCode, setDiscountCode] = useState("");
   const disableRedirect = import.meta.env.VITE_E2E_DISABLE_REDIRECT === "true";
+
+  useEffect(() => {
+    const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
+    const email = form.email?.trim();
+    const shouldFetch =
+      isCloud &&
+      email &&
+      email.includes("@") &&
+      (!form.name || !form.phone || !form.address || !form.city || !form.state);
+    let active = true;
+    (async () => {
+      if (!shouldFetch) return;
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("email", email.toLowerCase())
+          .maybeSingle();
+        if (!active || !data) return;
+        setForm((prev) => ({
+          ...prev,
+          name: prev.name || data.name || "",
+          phone: prev.phone || data.phone || "",
+          address: prev.address || data.address || "",
+          city: prev.city || data.city || "",
+          state: prev.state || data.state || "",
+        }));
+      } catch (e) {
+        void e;
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [form.email]);
 
   useEffect(() => {
     const sync = () => setSettings(getSettings());
@@ -197,7 +234,12 @@ function CheckoutPage() {
     try {
       setStatus({ type: "loading", message: "" });
       const proofUrl = await uploadProof(proof);
-      const orderNumber = getNextOrderNumber();
+      const isCloud =
+        import.meta.env.VITE_STORAGE_MODE === "cloud" &&
+        import.meta.env.VITE_E2E_BYPASS_AUTH !== "true";
+      const orderNumber = isCloud
+        ? await nextCounter("order")
+        : getNextOrderNumber();
       const orderId = `order-${Date.now()}`;
       const itemsLines = items.map(
         (item) =>

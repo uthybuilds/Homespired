@@ -3,6 +3,7 @@ const storageMode = import.meta.env.VITE_STORAGE_MODE || "local";
 let __cloudHydrated = false;
 const __isCloud = () =>
   storageMode === "cloud" && import.meta.env.VITE_E2E_BYPASS_AUTH !== "true";
+let __userId = null;
 const __dispatchStorage = () => {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("storage"));
@@ -39,6 +40,24 @@ const __memStore = {
   [cartUpdatedKey]: null,
   [lastEmailKey]: "",
 };
+
+async function __loadCartFromCloud() {
+  if (!__isCloud() || !__userId) return;
+  const { data, error } = await supabase
+    .from("carts")
+    .select("*")
+    .eq("user_id", __userId)
+    .maybeSingle();
+  if (error) {
+    return;
+  }
+  __memStore[cartKey] = Array.isArray(data?.items) ? data.items : [];
+  __memStore[cartUpdatedKey] = Date.now();
+  __dispatchStorage();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cart-updated"));
+  }
+}
 
 export const defaultSettings = {
   whatsappNumber: "09026561373",
@@ -278,6 +297,17 @@ if (__isCloud()) {
   __hydrateFromCloud();
 }
 
+if (__isCloud()) {
+  supabase.auth.getSession().then(({ data }) => {
+    __userId = data?.session?.user?.id || null;
+    __loadCartFromCloud();
+  });
+  supabase.auth.onAuthStateChange((_event, session) => {
+    __userId = session?.user?.id || null;
+    __loadCartFromCloud();
+  });
+}
+
 export const getCatalog = () => {
   if (__isCloud()) {
     return Array.isArray(__memStore[catalogKey]) ? __memStore[catalogKey] : [];
@@ -351,10 +381,29 @@ export const getCart = () => {
 };
 
 export const saveCart = (items) => {
-  localStorage.setItem(cartKey, JSON.stringify(items));
-  localStorage.setItem(cartUpdatedKey, String(Date.now()));
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("cart-updated"));
+  if (__isCloud()) {
+    __memStore[cartKey] = items;
+    __memStore[cartUpdatedKey] = Date.now();
+    if (__userId) {
+      supabase
+        .from("carts")
+        .upsert(
+          [{ user_id: __userId, items, updated_at: new Date().toISOString() }],
+          {
+            onConflict: "user_id",
+          },
+        );
+    }
+    __dispatchStorage();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("cart-updated"));
+    }
+  } else {
+    localStorage.setItem(cartKey, JSON.stringify(items));
+    localStorage.setItem(cartUpdatedKey, String(Date.now()));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("cart-updated"));
+    }
   }
 };
 
@@ -443,12 +492,19 @@ export const getSettings = () => {
 };
 
 export const getLastKnownEmail = () => {
+  if (__isCloud()) {
+    return __memStore[lastEmailKey] || "";
+  }
   const raw = localStorage.getItem(lastEmailKey);
   return raw || "";
 };
 
 export const setLastKnownEmail = (email) => {
   if (!email) return;
+  if (__isCloud()) {
+    __memStore[lastEmailKey] = email;
+    return;
+  }
   localStorage.setItem(lastEmailKey, email);
 };
 
@@ -720,6 +776,17 @@ export const upsertCustomer = (nextCustomer) => {
           state: c.state || "",
         },
       ]);
+      supabase.from("profiles").upsert([
+        {
+          email: c.email,
+          name: c.name || "",
+          phone: c.phone || "",
+          address: c.address || "",
+          city: c.city || "",
+          state: c.state || "",
+          updated_at: new Date().toISOString(),
+        },
+      ]);
     }
   }
   return next;
@@ -917,6 +984,9 @@ export const trackAnalytics = (field) => {
 };
 
 export const getCartUpdatedAt = () => {
+  if (__isCloud()) {
+    return __memStore[cartUpdatedKey] || null;
+  }
   const raw = localStorage.getItem(cartUpdatedKey);
   return raw ? Number(raw) : null;
 };
@@ -937,4 +1007,12 @@ export const normalizeWhatsAppNumber = (value) => {
     return digits.slice(2);
   }
   return digits;
+};
+
+export const nextCounter = async (key) => {
+  const { data, error } = await supabase.rpc("next_counter", { p_key: key });
+  if (error) {
+    throw error;
+  }
+  return Number(data);
 };

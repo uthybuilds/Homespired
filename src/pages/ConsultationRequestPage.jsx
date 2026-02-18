@@ -12,6 +12,7 @@ import {
   normalizeWhatsAppNumber,
   setLastKnownEmail,
   upsertCustomer,
+  nextCounter,
 } from "../utils/catalogStore.js";
 import { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
@@ -152,7 +153,12 @@ function ConsultationRequestPage({ type }) {
         type: "loading",
         message: "",
       });
-      const requestNumber = getNextRequestNumber();
+      const isCloud =
+        import.meta.env.VITE_STORAGE_MODE === "cloud" &&
+        import.meta.env.VITE_E2E_BYPASS_AUTH !== "true";
+      const requestNumber = isCloud
+        ? await nextCounter("request")
+        : getNextRequestNumber();
       const requestRef = `Request ${requestNumber}`;
       const price = Number(option.price || 0);
       if (option.redirectOnly) {
