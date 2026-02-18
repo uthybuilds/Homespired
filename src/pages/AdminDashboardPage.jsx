@@ -69,6 +69,7 @@ function AdminDashboardPage() {
   const [savedSettings, setSavedSettings] = useState(() => getSettings());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("overview");
   const [pendingOrderStatus, setPendingOrderStatus] = useState({});
   const [pendingRequestStatus, setPendingRequestStatus] = useState({});
   const [discountForm, setDiscountForm] = useState({
@@ -82,6 +83,28 @@ function AdminDashboardPage() {
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const nextSection = window.location.hash.replace("#", "");
+      if (navSections.some((section) => section.id === nextSection)) {
+        setActiveSection(nextSection);
+        return;
+      }
+      setActiveSection("overview");
+    };
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  const handleSectionChange = (nextSection) => {
+    setActiveSection(nextSection);
+    setIsMenuOpen(false);
+    if (window.location.hash !== `#${nextSection}`) {
+      window.history.replaceState(null, "", `#${nextSection}`);
+    }
   };
 
   const optimizeImage = (file) =>
@@ -717,95 +740,98 @@ function AdminDashboardPage() {
                 </p>
                 <nav className="space-y-2 text-xs font-semibold uppercase tracking-[0.2em] text-ash">
                   {navSections.map((section) => (
-                    <a
+                    <button
                       key={section.id}
-                      href={`#${section.id}`}
-                      className="block rounded-full border border-ash/30 bg-porcelain px-4 py-2 text-[11px] text-obsidian transition hover:border-ash"
+                      type="button"
+                      onClick={() => handleSectionChange(section.id)}
+                      className="block w-full rounded-full border border-ash/30 bg-porcelain px-4 py-2 text-left text-[11px] text-obsidian transition hover:border-ash"
                     >
                       {section.label}
-                    </a>
+                    </button>
                   ))}
                 </nav>
               </div>
             </aside>
 
             <main className="flex-1 space-y-10">
-              <section id="overview" className="space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Total Revenue
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-obsidian">
-                      ₦{Number(totalRevenue || 0).toLocaleString()}
-                    </p>
-                    <p className="mt-2 text-xs text-ash">
-                      {orders.length} total orders
-                    </p>
+              {activeSection === "overview" ? (
+                <section id="overview" className="space-y-6">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Total Revenue
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-obsidian">
+                        ₦{Number(totalRevenue || 0).toLocaleString()}
+                      </p>
+                      <p className="mt-2 text-xs text-ash">
+                        {orders.length} total orders
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Orders
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-obsidian">
+                        {orders.length}
+                      </p>
+                      <p className="mt-2 text-xs text-ash">
+                        {pendingOrdersCount} pending
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Requests
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-obsidian">
+                        {requests.length}
+                      </p>
+                      <p className="mt-2 text-xs text-ash">
+                        {pendingRequestsCount} pending
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Conversion
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-obsidian">
+                        {conversionRate}%
+                      </p>
+                      <p className="mt-2 text-xs text-ash">
+                        {analytics.storeViews || 0} store views
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Orders
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-obsidian">
-                      {orders.length}
-                    </p>
-                    <p className="mt-2 text-xs text-ash">
-                      {pendingOrdersCount} pending
-                    </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-3xl border border-ash/30 bg-linen p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Low Inventory
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-obsidian">
+                        {lowInventory.length}
+                      </p>
+                      <p className="mt-2 text-xs text-ash">
+                        Items below threshold
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-ash/30 bg-linen p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                        Customers
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-obsidian">
+                        {customerStats.length}
+                      </p>
+                      <p className="mt-2 text-xs text-ash">Saved profiles</p>
+                    </div>
                   </div>
-                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Requests
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-obsidian">
-                      {requests.length}
-                    </p>
-                    <p className="mt-2 text-xs text-ash">
-                      {pendingRequestsCount} pending
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-ash/30 bg-porcelain p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Conversion
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-obsidian">
-                      {conversionRate}%
-                    </p>
-                    <p className="mt-2 text-xs text-ash">
-                      {analytics.storeViews || 0} store views
-                    </p>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-3xl border border-ash/30 bg-linen p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Low Inventory
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-obsidian">
-                      {lowInventory.length}
-                    </p>
-                    <p className="mt-2 text-xs text-ash">
-                      Items below threshold
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-ash/30 bg-linen p-5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                      Customers
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-obsidian">
-                      {customerStats.length}
-                    </p>
-                    <p className="mt-2 text-xs text-ash">Saved profiles</p>
-                  </div>
-                </div>
-              </section>
+                </section>
+              ) : null}
 
-              <section
-                id="catalog"
-                className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]"
-              >
-                <div className="rounded-3xl border border-ash/30 bg-linen p-6">
+              {activeSection === "catalog" ? (
+                <section
+                  id="catalog"
+                  className="rounded-3xl border border-ash/30 bg-linen p-6"
+                >
                   <h2 className="text-xl font-semibold text-obsidian">
                     Product Catalog
                   </h2>
@@ -852,11 +878,12 @@ function AdminDashboardPage() {
                       ))
                     )}
                   </div>
-                </div>
+                </section>
+              ) : null}
 
-                <form
+              {activeSection === "upload" ? (
+                <section
                   id="upload"
-                  onSubmit={handleSubmit}
                   className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
                   <h2 className="text-xl font-semibold text-obsidian">
@@ -865,7 +892,7 @@ function AdminDashboardPage() {
                   <p className="mt-2 text-sm text-ash">
                     Add new items with images, pricing, and inventory counts.
                   </p>
-                  <div className="mt-6 space-y-4">
+                  <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                     <input
                       value={form.name}
                       onChange={(event) =>
@@ -942,19 +969,19 @@ function AdminDashboardPage() {
                       placeholder="Inventory count"
                       className="w-full rounded-2xl border border-ash/40 bg-white/70 px-4 py-3 text-sm text-obsidian focus:border-obsidian focus:outline-none"
                     />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    Publish Product
-                  </button>
-                </form>
-              </section>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      Publish Product
+                    </button>
+                  </form>
+                </section>
+              ) : null}
 
-              <section className="grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-                <div
+              {activeSection === "settings" ? (
+                <section
                   id="settings"
                   className="rounded-3xl border border-ash/30 bg-linen p-6"
                 >
@@ -1054,9 +1081,11 @@ function AdminDashboardPage() {
                   >
                     Save Business Settings
                   </button>
-                </div>
+                </section>
+              ) : null}
 
-                <div
+              {activeSection === "pricing" ? (
+                <section
                   id="pricing"
                   className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
@@ -1181,372 +1210,380 @@ function AdminDashboardPage() {
                       </button>
                     </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              ) : null}
 
-              <section
-                id="orders"
-                className="rounded-3xl border border-ash/30 bg-porcelain p-6"
-              >
-                <h2 className="text-xl font-semibold text-obsidian">Orders</h2>
-                <p className="mt-2 text-sm text-ash">
-                  Track every order, update statuses, and restock on
-                  cancellation.
-                </p>
-                <div className="mt-6 grid gap-4">
-                  {sortedOrders.length === 0 ? (
-                    <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
-                      Orders will appear here after checkout.
-                    </div>
-                  ) : (
-                    sortedOrders.map((order) => {
-                      const orderStatus =
-                        pendingOrderStatus[order.id] ||
-                        order.status ||
-                        "Pending";
-                      return (
-                        <div
-                          key={order.id}
-                          className="rounded-2xl border border-ash/30 bg-linen p-5"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                {order.label || order.number || order.id}
-                              </p>
-                              <p className="mt-2 text-sm text-ash">
-                                {order.createdAt
-                                  ? new Date(order.createdAt).toLocaleString()
-                                  : ""}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap gap-3">
-                              <select
-                                value={orderStatus}
-                                onChange={async (event) => {
-                                  const nextStatus = event.target.value;
-                                  if (nextStatus === order.status) {
+              {activeSection === "orders" ? (
+                <section
+                  id="orders"
+                  className="rounded-3xl border border-ash/30 bg-porcelain p-6"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Orders
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Track every order, update statuses, and restock on
+                    cancellation.
+                  </p>
+                  <div className="mt-6 grid gap-4">
+                    {sortedOrders.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
+                        Orders will appear here after checkout.
+                      </div>
+                    ) : (
+                      sortedOrders.map((order) => {
+                        const orderStatus =
+                          pendingOrderStatus[order.id] ||
+                          order.status ||
+                          "Pending";
+                        return (
+                          <div
+                            key={order.id}
+                            className="rounded-2xl border border-ash/30 bg-linen p-5"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  {order.label || order.number || order.id}
+                                </p>
+                                <p className="mt-2 text-sm text-ash">
+                                  {order.createdAt
+                                    ? new Date(order.createdAt).toLocaleString()
+                                    : ""}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-3">
+                                <select
+                                  value={orderStatus}
+                                  onChange={async (event) => {
+                                    const nextStatus = event.target.value;
+                                    if (nextStatus === order.status) {
+                                      setPendingOrderStatus((prev) => {
+                                        const next = { ...prev };
+                                        delete next[order.id];
+                                        return next;
+                                      });
+                                      return;
+                                    }
+                                    setPendingOrderStatus((prev) => ({
+                                      ...prev,
+                                      [order.id]: nextStatus,
+                                    }));
+                                    await handleOrderStatusChange(
+                                      order.id,
+                                      nextStatus,
+                                    );
                                     setPendingOrderStatus((prev) => {
                                       const next = { ...prev };
                                       delete next[order.id];
                                       return next;
                                     });
-                                    return;
-                                  }
-                                  setPendingOrderStatus((prev) => ({
-                                    ...prev,
-                                    [order.id]: nextStatus,
-                                  }));
-                                  await handleOrderStatusChange(
-                                    order.id,
-                                    nextStatus,
-                                  );
-                                  setPendingOrderStatus((prev) => {
-                                    const next = { ...prev };
-                                    delete next[order.id];
-                                    return next;
-                                  });
-                                  pushToast({
-                                    type: "success",
-                                    message: "Order status saved.",
-                                  });
-                                }}
-                                className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
-                              >
-                                {orderStatusOptions.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await handleOrderStatusChange(
-                                    order.id,
-                                    orderStatus,
-                                  );
-                                  setPendingOrderStatus((prev) => {
-                                    const next = { ...prev };
-                                    delete next[order.id];
-                                    return next;
-                                  });
-                                  pushToast({
-                                    type: "success",
-                                    message: "Order status saved.",
-                                  });
-                                }}
-                                disabled={!pendingOrderStatus[order.id]}
-                                className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
-                              >
-                                Save Status
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await handleOrderStatusChange(
-                                    order.id,
-                                    "Cancelled",
-                                  );
-                                  pushToast({
-                                    type: "success",
-                                    message: "Order cancelled and restocked.",
-                                  });
-                                }}
-                                disabled={order.status === "Cancelled"}
-                                className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                Cancel & Restock
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyInvoice(order)}
-                                className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
-                              >
-                                Copy Invoice
-                              </button>
-                            </div>
-                          </div>
-                          <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                Customer
-                              </p>
-                              <p className="mt-2 text-sm text-obsidian">
-                                {order.customer?.name || "Guest"}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {order.customer?.email || ""}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {order.customer?.phone || ""}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {[
-                                  order.customer?.address,
-                                  order.customer?.city,
-                                  order.customer?.state,
-                                ]
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                Totals
-                              </p>
-                              <p className="mt-2 text-sm text-obsidian">
-                                ₦{Number(order.total || 0).toLocaleString()}
-                              </p>
-                              <p className="text-xs text-ash">
-                                Subtotal: ₦
-                                {Number(order.subtotal || 0).toLocaleString()}
-                              </p>
-                              <p className="text-xs text-ash">
-                                Shipping: ₦
-                                {Number(order.shipping || 0).toLocaleString()}
-                              </p>
-                              {order.discountAmount ? (
-                                <p className="text-xs text-ash">
-                                  Discount: -₦
-                                  {Number(
-                                    order.discountAmount,
-                                  ).toLocaleString()}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                          <div className="mt-4 space-y-2 text-sm text-ash">
-                            <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                              Items
-                            </p>
-                            {(order.items || []).map((item) => (
-                              <div
-                                key={`${order.id}-${item.id}`}
-                                className="flex items-center justify-between rounded-2xl border border-ash/30 bg-porcelain px-4 py-2"
-                              >
-                                <span>
-                                  {item.name} × {item.quantity}
-                                </span>
-                                <span>
-                                  ₦
-                                  {(
-                                    Number(item.price || 0) *
-                                    Number(item.quantity || 0)
-                                  ).toLocaleString()}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-4 flex flex-wrap gap-3 text-xs text-ash">
-                            {order.deliveryDate ? (
-                              <span>Delivery date: {order.deliveryDate}</span>
-                            ) : null}
-                            {order.deliveryTime ? (
-                              <span>Delivery time: {order.deliveryTime}</span>
-                            ) : null}
-                            {order.proofUrl ? (
-                              <a
-                                href={order.proofUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="underline"
-                              >
-                                View payment proof
-                              </a>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </section>
-
-              <section
-                id="requests"
-                className="rounded-3xl border border-ash/30 bg-porcelain p-6"
-              >
-                <h2 className="text-xl font-semibold text-obsidian">
-                  Requests
-                </h2>
-                <p className="mt-2 text-sm text-ash">
-                  Review consultation, class, and inspection submissions.
-                </p>
-                <div className="mt-6 grid gap-4">
-                  {sortedRequests.length === 0 ? (
-                    <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
-                      Requests will appear here after form submissions.
-                    </div>
-                  ) : (
-                    sortedRequests.map((request) => {
-                      const requestStatus =
-                        pendingRequestStatus[request.id] ||
-                        request.status ||
-                        "Pending";
-                      return (
-                        <div
-                          key={request.id}
-                          className="rounded-2xl border border-ash/30 bg-linen p-5"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                {request.requestRef || request.id}
-                              </p>
-                              <p className="mt-2 text-sm text-ash">
-                                {request.createdAt
-                                  ? new Date(request.createdAt).toLocaleString()
-                                  : ""}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap gap-3">
-                              <select
-                                value={requestStatus}
-                                onChange={(event) =>
-                                  setPendingRequestStatus((prev) => ({
-                                    ...prev,
-                                    [request.id]: event.target.value,
-                                  }))
-                                }
-                                className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
-                              >
-                                {requestStatusOptions.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await handleRequestStatusChange(
-                                    request.id,
-                                    requestStatus,
-                                  );
-                                  setPendingRequestStatus((prev) => {
-                                    const next = { ...prev };
-                                    delete next[request.id];
-                                    return next;
-                                  });
-                                  pushToast({
-                                    type: "success",
-                                    message: "Request status saved.",
-                                  });
-                                }}
-                                className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
-                              >
-                                Save Status
-                              </button>
-                              {request.proofUrl ? (
-                                <a
-                                  href={request.proofUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                    pushToast({
+                                      type: "success",
+                                      message: "Order status saved.",
+                                    });
+                                  }}
+                                  className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                                >
+                                  {orderStatusOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await handleOrderStatusChange(
+                                      order.id,
+                                      orderStatus,
+                                    );
+                                    setPendingOrderStatus((prev) => {
+                                      const next = { ...prev };
+                                      delete next[order.id];
+                                      return next;
+                                    });
+                                    pushToast({
+                                      type: "success",
+                                      message: "Order status saved.",
+                                    });
+                                  }}
+                                  disabled={!pendingOrderStatus[order.id]}
+                                  className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                                >
+                                  Save Status
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await handleOrderStatusChange(
+                                      order.id,
+                                      "Cancelled",
+                                    );
+                                    pushToast({
+                                      type: "success",
+                                      message: "Order cancelled and restocked.",
+                                    });
+                                  }}
+                                  disabled={order.status === "Cancelled"}
+                                  className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  Cancel & Restock
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyInvoice(order)}
                                   className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                                 >
-                                  View Proof
+                                  Copy Invoice
+                                </button>
+                              </div>
+                            </div>
+                            <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  Customer
+                                </p>
+                                <p className="mt-2 text-sm text-obsidian">
+                                  {order.customer?.name || "Guest"}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {order.customer?.email || ""}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {order.customer?.phone || ""}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {[
+                                    order.customer?.address,
+                                    order.customer?.city,
+                                    order.customer?.state,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  Totals
+                                </p>
+                                <p className="mt-2 text-sm text-obsidian">
+                                  ₦{Number(order.total || 0).toLocaleString()}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  Subtotal: ₦
+                                  {Number(order.subtotal || 0).toLocaleString()}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  Shipping: ₦
+                                  {Number(order.shipping || 0).toLocaleString()}
+                                </p>
+                                {order.discountAmount ? (
+                                  <p className="text-xs text-ash">
+                                    Discount: -₦
+                                    {Number(
+                                      order.discountAmount,
+                                    ).toLocaleString()}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="mt-4 space-y-2 text-sm text-ash">
+                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                Items
+                              </p>
+                              {(order.items || []).map((item) => (
+                                <div
+                                  key={`${order.id}-${item.id}`}
+                                  className="flex items-center justify-between rounded-2xl border border-ash/30 bg-porcelain px-4 py-2"
+                                >
+                                  <span>
+                                    {item.name} × {item.quantity}
+                                  </span>
+                                  <span>
+                                    ₦
+                                    {(
+                                      Number(item.price || 0) *
+                                      Number(item.quantity || 0)
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-3 text-xs text-ash">
+                              {order.deliveryDate ? (
+                                <span>Delivery date: {order.deliveryDate}</span>
+                              ) : null}
+                              {order.deliveryTime ? (
+                                <span>Delivery time: {order.deliveryTime}</span>
+                              ) : null}
+                              {order.proofUrl ? (
+                                <a
+                                  href={order.proofUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="underline"
+                                >
+                                  View payment proof
                                 </a>
                               ) : null}
                             </div>
                           </div>
-                          <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                Client
-                              </p>
-                              <p className="mt-2 text-sm text-obsidian">
-                                {request.customer?.name || "Guest"}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {request.customer?.email || ""}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {request.customer?.phone || ""}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {[
-                                  request.customer?.address,
-                                  request.customer?.city,
-                                  request.customer?.state,
-                                ]
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                Request
-                              </p>
-                              <p className="mt-2 text-sm text-obsidian">
-                                {getRequestTypeLabel(request.type)}
-                              </p>
-                              <p className="text-xs text-ash">
-                                {request.optionTitle || ""}
-                              </p>
-                              <p className="text-xs text-ash">
-                                Total: ₦
-                                {Number(request.price || 0).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                          {request.notes ? (
-                            <div className="mt-4 text-sm text-ash">
-                              <p className="text-xs uppercase tracking-[0.3em] text-ash">
-                                Notes
-                              </p>
-                              <p className="mt-2">{request.notes}</p>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </section>
+                        );
+                      })
+                    )}
+                  </div>
+                </section>
+              ) : null}
 
-              <section className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-                <div
+              {activeSection === "requests" ? (
+                <section
+                  id="requests"
+                  className="rounded-3xl border border-ash/30 bg-porcelain p-6"
+                >
+                  <h2 className="text-xl font-semibold text-obsidian">
+                    Requests
+                  </h2>
+                  <p className="mt-2 text-sm text-ash">
+                    Review consultation, class, and inspection submissions.
+                  </p>
+                  <div className="mt-6 grid gap-4">
+                    {sortedRequests.length === 0 ? (
+                      <div className="rounded-2xl border border-ash/30 bg-linen p-6 text-sm text-ash">
+                        Requests will appear here after form submissions.
+                      </div>
+                    ) : (
+                      sortedRequests.map((request) => {
+                        const requestStatus =
+                          pendingRequestStatus[request.id] ||
+                          request.status ||
+                          "Pending";
+                        return (
+                          <div
+                            key={request.id}
+                            className="rounded-2xl border border-ash/30 bg-linen p-5"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  {request.requestRef || request.id}
+                                </p>
+                                <p className="mt-2 text-sm text-ash">
+                                  {request.createdAt
+                                    ? new Date(
+                                        request.createdAt,
+                                      ).toLocaleString()
+                                    : ""}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-3">
+                                <select
+                                  value={requestStatus}
+                                  onChange={(event) =>
+                                    setPendingRequestStatus((prev) => ({
+                                      ...prev,
+                                      [request.id]: event.target.value,
+                                    }))
+                                  }
+                                  className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                                >
+                                  {requestStatusOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await handleRequestStatusChange(
+                                      request.id,
+                                      requestStatus,
+                                    );
+                                    setPendingRequestStatus((prev) => {
+                                      const next = { ...prev };
+                                      delete next[request.id];
+                                      return next;
+                                    });
+                                    pushToast({
+                                      type: "success",
+                                      message: "Request status saved.",
+                                    });
+                                  }}
+                                  className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                                >
+                                  Save Status
+                                </button>
+                                {request.proofUrl ? (
+                                  <a
+                                    href={request.proofUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                  >
+                                    View Proof
+                                  </a>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="mt-4 grid gap-3 text-sm text-ash sm:grid-cols-2">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  Client
+                                </p>
+                                <p className="mt-2 text-sm text-obsidian">
+                                  {request.customer?.name || "Guest"}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {request.customer?.email || ""}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {request.customer?.phone || ""}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {[
+                                    request.customer?.address,
+                                    request.customer?.city,
+                                    request.customer?.state,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  Request
+                                </p>
+                                <p className="mt-2 text-sm text-obsidian">
+                                  {getRequestTypeLabel(request.type)}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  {request.optionTitle || ""}
+                                </p>
+                                <p className="text-xs text-ash">
+                                  Total: ₦
+                                  {Number(request.price || 0).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                            {request.notes ? (
+                              <div className="mt-4 text-sm text-ash">
+                                <p className="text-xs uppercase tracking-[0.3em] text-ash">
+                                  Notes
+                                </p>
+                                <p className="mt-2">{request.notes}</p>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
+              {activeSection === "customers" ? (
+                <section
                   id="customers"
                   className="rounded-3xl border border-ash/30 bg-linen p-6"
                 >
@@ -1598,9 +1635,11 @@ function AdminDashboardPage() {
                       ))
                     )}
                   </div>
-                </div>
+                </section>
+              ) : null}
 
-                <div
+              {activeSection === "discounts" ? (
+                <section
                   id="discounts"
                   className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
@@ -1763,11 +1802,11 @@ function AdminDashboardPage() {
                       ))
                     )}
                   </div>
-                </div>
-              </section>
+                </section>
+              ) : null}
 
-              <section className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-                <div
+              {activeSection === "analytics" ? (
+                <section
                   id="analytics"
                   className="rounded-3xl border border-ash/30 bg-linen p-6"
                 >
@@ -1840,9 +1879,11 @@ function AdminDashboardPage() {
                       ))
                     )}
                   </div>
-                </div>
+                </section>
+              ) : null}
 
-                <div
+              {activeSection === "inventory" ? (
+                <section
                   id="inventory"
                   className="rounded-3xl border border-ash/30 bg-porcelain p-6 shadow-[0_24px_40px_rgba(0,0,0,0.06)]"
                 >
@@ -1869,8 +1910,8 @@ function AdminDashboardPage() {
                       ))
                     )}
                   </div>
-                </div>
-              </section>
+                </section>
+              ) : null}
             </main>
           </div>
         </div>
@@ -1899,14 +1940,14 @@ function AdminDashboardPage() {
         </div>
         <nav className="space-y-2 text-xs font-semibold uppercase tracking-[0.2em] text-ash">
           {navSections.map((section) => (
-            <a
+            <button
               key={section.id}
-              href={`#${section.id}`}
-              onClick={() => setIsMenuOpen(false)}
-              className="block rounded-full border border-ash/30 bg-white/70 px-4 py-3 text-[11px] text-obsidian transition hover:border-ash"
+              type="button"
+              onClick={() => handleSectionChange(section.id)}
+              className="block w-full rounded-full border border-ash/30 bg-white/70 px-4 py-3 text-left text-[11px] text-obsidian transition hover:border-ash"
             >
               {section.label}
-            </a>
+            </button>
           ))}
         </nav>
       </aside>

@@ -105,6 +105,7 @@ test("admin dashboard shows orders, customers, discounts, analytics, alerts", as
     }),
   );
   await page.goto("/admin");
+  await page.getByRole("button", { name: "Orders" }).click();
   await expect(page.getByRole("heading", { name: "Orders" })).toBeVisible();
   await expect(page.getByText("Order 1")).toBeVisible();
   const statusSelect = page
@@ -112,16 +113,6 @@ test("admin dashboard shows orders, customers, discounts, analytics, alerts", as
     .filter({ has: page.locator('option[value="Pending"]') })
     .first();
   await expect(statusSelect).toHaveValue("Pending");
-  await expect(page.getByRole("heading", { name: "Customers" })).toBeVisible();
-  await expect(page.getByText("Ada Lovelace").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Discounts" })).toBeVisible();
-  await expect(page.getByText("VIP10")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
-  const alertsSection = page
-    .getByRole("heading", { name: "Inventory Alerts" })
-    .locator("..");
-  await expect(alertsSection).toBeVisible();
-  await expect(alertsSection.getByText("Rose Chair")).toBeVisible();
   const [request] = await Promise.all([
     page.waitForRequest((req) => {
       if (!req.url().includes("/functions/v1/form-delivery")) return false;
@@ -137,4 +128,18 @@ test("admin dashboard shows orders, customers, discounts, analytics, alerts", as
   ]);
   const payload = request.postData();
   expect(payload).toContain("payment_confirmed");
+  await page.getByRole("button", { name: "Customers" }).click();
+  await expect(page.getByRole("heading", { name: "Customers" })).toBeVisible();
+  await expect(page.getByText("Ada Lovelace").first()).toBeVisible();
+  await page.getByRole("button", { name: "Discounts" }).click();
+  await expect(page.getByRole("heading", { name: "Discounts" })).toBeVisible();
+  await expect(page.getByText("VIP10")).toBeVisible();
+  await page.getByRole("button", { name: "Analytics" }).click();
+  await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible();
+  await page.getByRole("button", { name: "Inventory" }).click();
+  const alertsSection = page
+    .getByRole("heading", { name: "Inventory Alerts" })
+    .locator("..");
+  await expect(alertsSection).toBeVisible();
+  await expect(alertsSection.getByText("Rose Chair")).toBeVisible();
 });
