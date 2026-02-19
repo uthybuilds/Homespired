@@ -3,6 +3,10 @@ const storageMode = import.meta.env.VITE_STORAGE_MODE || "local";
 let __cloudHydrated = false;
 const __isCloud = () =>
   storageMode === "cloud" && import.meta.env.VITE_E2E_BYPASS_AUTH !== "true";
+const __hasCloudEnv = () =>
+  Boolean(
+    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
 let __userId = null;
 const __dispatchStorage = () => {
   if (typeof window !== "undefined") {
@@ -733,6 +737,18 @@ export const saveRequests = (requests) => {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("requests-updated"));
   }
+  if (__hasCloudEnv()) {
+    const rows = requests.map((r) => ({
+      id: r.id,
+      type: r.type || "request",
+      payload: buildRequestPayload(r),
+      status: r.status || "Pending",
+      number: r.number ?? r.requestNumber ?? null,
+      created_at: r.createdAt ? new Date(r.createdAt).toISOString() : null,
+      updated_at: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
+    }));
+    supabase.from("requests").upsert(rows, { onConflict: "id" });
+  }
 };
 
 export const getNextOrderNumber = () => {
@@ -776,7 +792,7 @@ export const addOrder = (order) => {
 export const addRequest = (request) => {
   const next = [request, ...getRequests()];
   saveRequests(next);
-  if (__isCloud()) {
+  if (__hasCloudEnv()) {
     supabase.from("requests").insert([
       {
         id: request.id,
@@ -841,7 +857,7 @@ export const updateRequest = (requestId, updates) => {
       : request,
   );
   saveRequests(next);
-  if (__isCloud()) {
+  if (__hasCloudEnv()) {
     const row = next.find((r) => r.id === requestId);
     if (row) {
       supabase.from("requests").upsert([

@@ -131,6 +131,9 @@ function AdminDashboardPage() {
 
   const isAdmin =
     session?.user?.email?.toLowerCase() === "uthmanajanaku@gmail.com";
+  const hasCloudEnv = Boolean(
+    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -146,10 +149,10 @@ function AdminDashboardPage() {
       isActive = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [hasCloudEnv]);
 
   useEffect(() => {
-    if (import.meta.env.VITE_STORAGE_MODE !== "cloud") return;
+    if (!hasCloudEnv) return;
     let isMounted = true;
     (async () => {
       const { data, error } = await supabase
@@ -281,7 +284,7 @@ function AdminDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [hasCloudEnv]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -827,7 +830,7 @@ function AdminDashboardPage() {
   const handleRequestStatusChange = async (requestId, nextStatus) => {
     const current = requests.find((request) => request.id === requestId);
     if (!current) return;
-    if (import.meta.env.VITE_STORAGE_MODE === "cloud") {
+    if (hasCloudEnv) {
       if (!isAdmin) {
         pushToast({
           type: "error",
