@@ -129,6 +129,19 @@ function AdminDashboardPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const normalizeStatus = (value, fallback = "Pending") => {
+    if (value === undefined || value === null) return fallback;
+    const raw = String(value).trim().toLowerCase();
+    if (!raw) return fallback;
+    if (raw === "pending") return "Pending";
+    if (raw === "confirmed") return "Confirmed";
+    if (raw === "declined") return "Declined";
+    if (raw === "shipped") return "Shipped";
+    if (raw === "delivered") return "Delivered";
+    if (raw === "cancelled" || raw === "canceled") return "Cancelled";
+    return fallback;
+  };
+
   const isAdmin =
     session?.user?.email?.toLowerCase() === "uthmanajanaku@gmail.com";
   const hasCloudEnv = Boolean(
@@ -193,7 +206,7 @@ function AdminDashboardPage() {
         id: row.id,
         type: payload.type || row.type || "request",
         payload: row.payload || {},
-        status: row.status || payload.status || "Pending",
+        status: normalizeStatus(row.status ?? payload.status, "Pending"),
         number: row.number ?? payload.requestNumber ?? null,
         requestNumber: payload.requestNumber ?? row.number ?? null,
         requestRef: payload.requestRef || "",
@@ -1031,12 +1044,18 @@ function AdminDashboardPage() {
   );
 
   const pendingOrdersCount = useMemo(
-    () => orders.filter((order) => order.status === "Pending").length,
+    () =>
+      orders.filter(
+        (order) => normalizeStatus(order.status, "Pending") === "Pending",
+      ).length,
     [orders],
   );
 
   const pendingRequestsCount = useMemo(
-    () => requests.filter((request) => request.status === "Pending").length,
+    () =>
+      requests.filter(
+        (request) => normalizeStatus(request.status, "Pending") === "Pending",
+      ).length,
     [requests],
   );
 
@@ -1706,8 +1725,7 @@ function AdminDashboardPage() {
                       sortedOrders.map((order) => {
                         const orderStatus =
                           pendingOrderStatus[order.id] ||
-                          order.status ||
-                          "Pending";
+                          normalizeStatus(order.status, "Pending");
                         return (
                           <div
                             key={order.id}
@@ -1797,7 +1815,10 @@ function AdminDashboardPage() {
                                       message: "Order cancelled and restocked.",
                                     });
                                   }}
-                                  disabled={order.status === "Cancelled"}
+                                  disabled={
+                                    normalizeStatus(order.status, "Pending") ===
+                                    "Cancelled"
+                                  }
                                   className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   Cancel & Restock
@@ -1928,8 +1949,7 @@ function AdminDashboardPage() {
                       sortedRequests.map((request) => {
                         const requestStatus =
                           pendingRequestStatus[request.id] ||
-                          request.status ||
-                          "Pending";
+                          normalizeStatus(request.status, "Pending");
                         return (
                           <div
                             key={request.id}
