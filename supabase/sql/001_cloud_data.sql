@@ -66,6 +66,27 @@ create table if not exists public.carts_guest (
   updated_at timestamptz not null default now()
 );
 
+-- Requests
+create table if not exists public.requests (
+  id uuid primary key default gen_random_uuid(),
+  type text default 'request',
+  payload jsonb not null default '{}'::jsonb,
+  status text default 'Pending',
+  number bigint,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.requests enable row level security;
+create policy if not exists requests_insert_anon on public.requests
+  for insert to anon with check (true);
+create policy if not exists requests_select_admin on public.requests
+  for select to authenticated
+  using (lower(auth.jwt() ->> 'email') = 'uthmanajanaku@gmail.com');
+create policy if not exists requests_update_admin on public.requests
+  for update to authenticated
+  using (lower(auth.jwt() ->> 'email') = 'uthmanajanaku@gmail.com')
+  with check (lower(auth.jwt() ->> 'email') = 'uthmanajanaku@gmail.com');
+
 -- Global counters + RPC
 create table if not exists public.counters (
   key text primary key,

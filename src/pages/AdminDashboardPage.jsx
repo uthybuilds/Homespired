@@ -733,6 +733,29 @@ function AdminDashboardPage() {
   const handleRequestStatusChange = async (requestId, nextStatus) => {
     const current = requests.find((request) => request.id === requestId);
     if (!current) return;
+    if (import.meta.env.VITE_STORAGE_MODE === "cloud") {
+      if (!isAdmin) {
+        pushToast({
+          type: "error",
+          message: "Sign in as admin to update request status.",
+        });
+        return;
+      }
+      const { error } = await supabase
+        .from("requests")
+        .update({
+          status: nextStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", requestId);
+      if (error) {
+        pushToast({
+          type: "error",
+          message: "Cloud update failed. Please sign in and try again.",
+        });
+        return;
+      }
+    }
     const next = updateRequest(requestId, {
       status: nextStatus,
     });

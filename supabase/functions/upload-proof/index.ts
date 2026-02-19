@@ -2,11 +2,16 @@ const env = (globalThis as any).Deno?.env;
 const SUPABASE_URL = env?.get("SUPABASE_URL");
 const SERVICE_KEY = env?.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+    Vary: "Origin",
+  };
 };
 
 function u8FromBase64(b64: string): Uint8Array {
@@ -42,6 +47,7 @@ const serve =
   });
 
 serve(async (req: Request) => {
+  const CORS = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST")
     return new Response("Method Not Allowed", { status: 405, headers: CORS });

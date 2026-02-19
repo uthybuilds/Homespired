@@ -8,11 +8,16 @@ const JSON_HEADERS = {
   apikey: SERVICE_KEY,
 };
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+    Vary: "Origin",
+  };
 };
 
 function getCookie(req: Request, name: string): string | null {
@@ -39,6 +44,7 @@ const serve =
   });
 
 serve(async (req: Request) => {
+  const CORS = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
   }
@@ -53,17 +59,20 @@ serve(async (req: Request) => {
     body = {};
   }
   const action = String(body?.action || "");
+  const bodyToken = typeof body?.token === "string" ? body.token : "";
 
-  let token = getCookie(req, "cart_token");
+  let token = bodyToken || getCookie(req, "cart_token");
   let setCookieHeader: string | null = null;
 
   if (!token || action === "ensure") {
     token = crypto.randomUUID();
-    setCookieHeader = setCookie(token);
+    if (!bodyToken) {
+      setCookieHeader = setCookie(token);
+    }
   }
 
   if (action === "ensure") {
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, token }), {
       headers: {
         ...CORS,
         "Content-Type": "application/json",
@@ -79,7 +88,7 @@ serve(async (req: Request) => {
     const res = await fetch(url, { headers: JSON_HEADERS });
     const rows = (await res.json().catch(() => [])) as any[];
     const items = Array.isArray(rows?.[0]?.items) ? rows[0].items : [];
-    return new Response(JSON.stringify({ items }), {
+    return new Response(JSON.stringify({ items, token }), {
       headers: {
         ...CORS,
         "Content-Type": "application/json",
@@ -103,7 +112,7 @@ serve(async (req: Request) => {
         updated_at: new Date().toISOString(),
       }),
     });
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, token }), {
       headers: {
         ...CORS,
         "Content-Type": "application/json",

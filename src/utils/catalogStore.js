@@ -1,4 +1,4 @@
-import supabase, { invokeEdgeFunction } from "./supabaseClient.js";
+import supabase from "./supabaseClient.js";
 const storageMode = import.meta.env.VITE_STORAGE_MODE || "local";
 let __cloudHydrated = false;
 const __isCloud = () =>
@@ -23,6 +23,25 @@ const orderNumberKey = "homespired_order_number_v1";
 const requestNumberKey = "homespired_request_number_v1";
 const cartUpdatedKey = "homespired_cart_updated_v1";
 const lastEmailKey = "homespired_last_email_v1";
+const getLocalCartFallback = () => {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(cartKey);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveLocalCartFallback = (items) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(cartKey, JSON.stringify(items));
+  localStorage.setItem(cartUpdatedKey, String(Date.now()));
+  __dispatchStorage();
+  window.dispatchEvent(new Event("cart-updated"));
+};
 
 // In-memory store when running in strict cloud mode to avoid any localStorage writes
 const __memStore = {
@@ -59,10 +78,7 @@ async function __loadCartFromCloud() {
     }
     return;
   }
-  const ensure = await invokeEdgeFunction("guest-cart", { action: "ensure" });
-  void ensure;
-  const { data } = await invokeEdgeFunction("guest-cart", { action: "read" });
-  const items = Array.isArray(data?.items) ? data.items : [];
+  const items = getLocalCartFallback();
   __memStore[cartKey] = items;
   __memStore[cartUpdatedKey] = Date.now();
   __dispatchStorage();
@@ -287,12 +303,31 @@ async function __hydrateFromCloud() {
     if (Array.isArray(req)) {
       __memStore[requestsKey] = req.map((x) => ({
         id: x.id,
-        type: x.type || "request",
+        type: x.payload?.type || x.type || "request",
         payload: x.payload || {},
-        status: x.status || "Pending",
-        number: x.number || null,
-        createdAt: x.created_at ? new Date(x.created_at).getTime() : Date.now(),
-        updatedAt: x.updated_at ? new Date(x.updated_at).getTime() : Date.now(),
+        status: x.status || x.payload?.status || "Pending",
+        number: x.number ?? x.payload?.requestNumber ?? null,
+        requestNumber: x.payload?.requestNumber ?? x.number ?? null,
+        requestRef: x.payload?.requestRef || "",
+        optionId: x.payload?.optionId || "",
+        optionTitle: x.payload?.optionTitle || "",
+        price: Number(x.payload?.price || 0),
+        redirectOnly: x.payload?.redirectOnly ?? false,
+        customer: x.payload?.customer || {},
+        notes: x.payload?.notes || "",
+        proofUrl: x.payload?.proofUrl || "",
+        createdAt: x.created_at
+          ? new Date(x.created_at).getTime()
+          : x.payload?.createdAt
+            ? new Date(x.payload.createdAt).getTime()
+            : Date.now(),
+        updatedAt: x.updated_at
+          ? new Date(x.updated_at).getTime()
+          : x.payload?.updatedAt
+            ? new Date(x.payload.updatedAt).getTime()
+            : x.payload?.createdAt
+              ? new Date(x.payload.createdAt).getTime()
+              : Date.now(),
       }));
     }
     const mergedSettings = set
@@ -346,7 +381,13 @@ if (__isCloud()) {
 }
 
 if (__isCloud()) {
-  supabase.auth.getSession().then(({ data }) => {
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      supabase.auth.signOut({ scope: "local" });
+      __userId = null;
+      __loadCartFromCloud();
+      return;
+    }
     __userId = data?.session?.user?.id || null;
     __loadCartFromCloud();
   });
@@ -445,7 +486,7 @@ export const saveCart = (items) => {
           },
         );
     } else {
-      invokeEdgeFunction("guest-cart", { action: "write", items });
+      saveLocalCartFallback(items);
     }
     __dispatchStorage();
     if (typeof window !== "undefined") {
@@ -647,6 +688,29 @@ export const getRequests = () => {
   }
 };
 
+const buildRequestPayload = (request) => {
+  const base =
+    request?.payload && typeof request.payload === "object"
+      ? request.payload
+      : {};
+  return {
+    ...base,
+    type: request?.type || base.type || null,
+    optionId: request?.optionId || base.optionId || null,
+    optionTitle: request?.optionTitle || base.optionTitle || "",
+    price: Number(request?.price ?? base.price ?? 0),
+    customer: request?.customer || base.customer || {},
+    notes: request?.notes ?? base.notes ?? "",
+    proofUrl: request?.proofUrl ?? base.proofUrl ?? "",
+    requestRef: request?.requestRef || base.requestRef || "",
+    requestNumber:
+      request?.requestNumber ?? request?.number ?? base.requestNumber ?? null,
+    redirectOnly: request?.redirectOnly ?? base.redirectOnly ?? false,
+    createdAt: request?.createdAt ?? base.createdAt ?? null,
+    updatedAt: request?.updatedAt ?? base.updatedAt ?? null,
+  };
+};
+
 export const saveRequests = (requests) => {
   if (__isCloud()) {
     __memStore[requestsKey] = Array.isArray(requests) ? requests : [];
@@ -656,9 +720,9 @@ export const saveRequests = (requests) => {
     const rows = requests.map((r) => ({
       id: r.id,
       type: r.type || "request",
-      payload: r.payload || {},
+      payload: buildRequestPayload(r),
       status: r.status || "Pending",
-      number: r.number || null,
+      number: r.number ?? r.requestNumber ?? null,
       created_at: r.createdAt ? new Date(r.createdAt).toISOString() : null,
       updated_at: r.updatedAt ? new Date(r.updatedAt).toISOString() : null,
     }));
@@ -717,9 +781,9 @@ export const addRequest = (request) => {
       {
         id: request.id,
         type: request.type || "request",
-        payload: request.payload || {},
+        payload: buildRequestPayload(request),
         status: request.status || "Pending",
-        number: request.number || null,
+        number: request.number ?? request.requestNumber ?? null,
       },
     ]);
   }
@@ -784,9 +848,9 @@ export const updateRequest = (requestId, updates) => {
         {
           id: row.id,
           type: row.type || "request",
-          payload: row.payload || {},
+          payload: buildRequestPayload(row),
           status: row.status || "Pending",
-          number: row.number || null,
+          number: row.number ?? row.requestNumber ?? null,
           updated_at: row.updatedAt
             ? new Date(row.updatedAt).toISOString()
             : new Date().toISOString(),
@@ -1112,9 +1176,29 @@ export const normalizeWhatsAppNumber = (value) => {
 };
 
 export const nextCounter = async (key) => {
+  const fallback = () => {
+    if (key === "order") return getNextOrderNumber();
+    if (key === "request") return getNextRequestNumber();
+    const genericKey = `homespired_counter_${key}_v1`;
+    const raw = localStorage.getItem(genericKey);
+    const next = Number(raw || 0) + 1;
+    localStorage.setItem(genericKey, String(next));
+    return next;
+  };
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    return fallback();
+  }
+  const { data: sessionData } = await supabase.auth.getSession();
+  const email = sessionData?.session?.user?.email?.toLowerCase() || "";
+  const isAdmin = email === "uthmanajanaku@gmail.com";
+  if (!isAdmin) {
+    return fallback();
+  }
   const { data, error } = await supabase.rpc("next_counter", { p_key: key });
   if (error) {
-    throw error;
+    return fallback();
   }
   return Number(data);
 };

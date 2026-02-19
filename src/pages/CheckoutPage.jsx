@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import { useToast } from "../components/useToast.js";
-import supabase from "../utils/supabaseClient.js";
+import supabase, { invokeEdgeFunction } from "../utils/supabaseClient.js";
 import {
   addOrder,
   adjustInventory,
@@ -245,29 +245,66 @@ function CheckoutPage() {
     }));
   };
 
-  const uploadProof = async (file) => {
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Image encoding failed."));
+      reader.readAsDataURL(file);
+    });
+
+  const uploadViaSupabase = async (file) => {
+    const dataUrl = await readFileAsDataUrl(file);
+    const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
+    if (!match) return "";
+    const [, contentType, base64] = match;
+    const filename = file?.name || `proof-${Date.now()}.jpg`;
+    const { data, error } = await invokeEdgeFunction("upload-proof", {
+      filename,
+      contentType,
+      base64,
+    });
+    if (error || !data?.url) return "";
+    return data.url;
+  };
+
+  const uploadToCloudinary = async (file, includeFolder) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
     if (!cloudName || !uploadPreset) {
       return "";
     }
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", uploadPreset);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+    if (includeFolder) {
       formData.append("folder", "homespired-orders");
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: formData },
-      );
-      const data = await response.json().catch(() => ({}));
-      if (data?.error || !response.ok || !data?.secure_url) {
-        return "";
-      }
-      return data.secure_url;
-    } catch {
-      return "";
     }
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: "POST", body: formData },
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!data?.error && response.ok && data?.secure_url) {
+      return data.secure_url;
+    }
+    return "";
+  };
+
+  const uploadProof = async (file) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (cloudName && uploadPreset) {
+      try {
+        const withFolder = await uploadToCloudinary(file, true);
+        if (withFolder) return withFolder;
+        const withoutFolder = await uploadToCloudinary(file, false);
+        if (withoutFolder) return withoutFolder;
+      } catch {
+        return await uploadViaSupabase(file);
+      }
+    }
+    return await uploadViaSupabase(file);
   };
 
   const handleSubmit = async (event) => {
@@ -301,6 +338,9 @@ function CheckoutPage() {
     try {
       setStatus({ type: "loading", message: "" });
       const proofUrl = await uploadProof(proof);
+      if (!proofUrl) {
+        throw new Error("Payment proof upload failed. Please try again.");
+      }
       const isCloud =
         import.meta.env.VITE_STORAGE_MODE === "cloud" &&
         import.meta.env.VITE_E2E_BYPASS_AUTH !== "true";
@@ -551,7 +591,9 @@ function CheckoutPage() {
                     htmlFor="checkout-proof-upload"
                     className="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-ash/40 bg-white/80 px-4 py-3 text-sm text-obsidian"
                   >
-                    <span>{proofName || "Tap to upload payment proof"}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {proofName || "Tap to upload proof"}
+                    </span>
                     <span className="text-xs uppercase tracking-[0.2em] text-ash">
                       Upload
                     </span>
