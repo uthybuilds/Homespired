@@ -674,36 +674,48 @@ function AdminDashboardPage() {
   };
 
   const sendRequestConfirmation = async (request) => {
-    const email = request.customer?.email;
+    const email =
+      request.customer?.email ||
+      request.payload?.customer?.email ||
+      request.payload?.clientEmail ||
+      "";
     if (!email) return;
+    const name =
+      request.customer?.name || request.payload?.customer?.name || "Guest";
+    const phone =
+      request.customer?.phone || request.payload?.customer?.phone || "";
+    const total = getRequestOptionPrice(request);
     const typeLabel =
-      request.type === "inspection"
+      (request.type || request.payload?.type) === "inspection"
         ? "Inspection"
-        : request.type === "class"
+        : (request.type || request.payload?.type) === "class"
           ? "Class"
           : "Consultation";
     const lines = [
       "Payment Confirmed",
-      request.requestRef || request.id,
+      request.requestRef || request.payload?.requestRef || request.id,
       "",
-      `Client: ${request.customer?.name || "Guest"}`,
+      `Client: ${name}`,
       `Email: ${email}`,
-      request.customer?.phone ? `Phone: ${request.customer.phone}` : null,
+      phone ? `Phone: ${phone}` : null,
       "",
       `${typeLabel} Request`,
-      request.optionTitle ? `Package: ${request.optionTitle}` : null,
-      `Total: ₦${Number(request.price || 0).toLocaleString()}`,
+      request.optionTitle || request.payload?.optionTitle
+        ? `Package: ${request.optionTitle || request.payload?.optionTitle}`
+        : null,
+      `Total: ₦${Number(total || 0).toLocaleString()}`,
     ].filter(Boolean);
     try {
       await invokeEdgeFunction("form-delivery", {
         type: "payment_confirmed",
         payload: {
           requestType: "Payment Confirmed",
-          orderRef: request.requestRef || request.id,
-          clientName: request.customer?.name || "Guest",
+          orderRef:
+            request.requestRef || request.payload?.requestRef || request.id,
+          clientName: name,
           clientEmail: email,
-          clientPhone: request.customer?.phone || "",
-          total: Number(request.price || 0),
+          clientPhone: phone,
+          total: Number(total || 0),
           lines,
         },
       });
@@ -869,6 +881,28 @@ function AdminDashboardPage() {
       : requestType === "class"
         ? "Class"
         : "Consultation";
+
+  const getRequestOptionPrice = (request) => {
+    const direct = Number(request.price ?? request.payload?.price ?? 0);
+    if (direct) return direct;
+    const type = request.type || request.payload?.type;
+    const optionId = request.optionId || request.payload?.optionId;
+    const optionTitle = request.optionTitle || request.payload?.optionTitle;
+    const options =
+      type === "inspection"
+        ? settings.inspectionOptions
+        : type === "class"
+          ? settings.classOptions
+          : settings.consultationOptions;
+    const match = (options || []).find((option) =>
+      optionId
+        ? option.id === optionId
+        : optionTitle
+          ? option.title === optionTitle
+          : false,
+    );
+    return Number(match?.price || 0);
+  };
 
   const sortedOrders = useMemo(() => {
     return [...orders].sort(
@@ -1908,14 +1942,20 @@ function AdminDashboardPage() {
                                   Request
                                 </p>
                                 <p className="mt-2 text-sm text-obsidian">
-                                  {getRequestTypeLabel(request.type)}
+                                  {getRequestTypeLabel(
+                                    request.type || request.payload?.type,
+                                  )}
                                 </p>
                                 <p className="text-xs text-ash">
-                                  {request.optionTitle || ""}
+                                  {request.optionTitle ||
+                                    request.payload?.optionTitle ||
+                                    ""}
                                 </p>
                                 <p className="text-xs text-ash">
                                   Total: ₦
-                                  {Number(request.price || 0).toLocaleString()}
+                                  {Number(
+                                    getRequestOptionPrice(request) || 0,
+                                  ).toLocaleString()}
                                 </p>
                               </div>
                             </div>
