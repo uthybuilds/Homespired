@@ -171,6 +171,88 @@ function AdminDashboardPage() {
         );
       }
     })();
+    const mapRequestRow = (row) => {
+      const payload =
+        row?.payload && typeof row.payload === "object" ? row.payload : {};
+      const createdAt = row?.created_at
+        ? new Date(row.created_at).getTime()
+        : payload?.createdAt
+          ? new Date(payload.createdAt).getTime()
+          : Date.now();
+      const updatedAt = row?.updated_at
+        ? new Date(row.updated_at).getTime()
+        : payload?.updatedAt
+          ? new Date(payload.updatedAt).getTime()
+          : payload?.createdAt
+            ? new Date(payload.createdAt).getTime()
+            : Date.now();
+      return {
+        id: row.id,
+        type: payload.type || row.type || "request",
+        payload: row.payload || {},
+        status: row.status || payload.status || "Pending",
+        number: row.number ?? payload.requestNumber ?? null,
+        requestNumber: payload.requestNumber ?? row.number ?? null,
+        requestRef: payload.requestRef || "",
+        optionId: payload.optionId || "",
+        optionTitle: payload.optionTitle || "",
+        price: Number(payload.price || 0),
+        redirectOnly: payload.redirectOnly ?? false,
+        customer: payload.customer || {},
+        notes: payload.notes || "",
+        proofUrl: payload.proofUrl || "",
+        createdAt,
+        updatedAt,
+      };
+    };
+    const upsertRequest = (row) => {
+      const mapped = mapRequestRow(row);
+      setRequests((prev) => {
+        const exists = prev.some((request) => request.id === mapped.id);
+        if (exists) {
+          return prev.map((request) =>
+            request.id === mapped.id ? mapped : request,
+          );
+        }
+        return [mapped, ...prev];
+      });
+    };
+    (async () => {
+      const { data } = await supabase
+        .from("requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!isMounted) return;
+      if (Array.isArray(data)) {
+        setRequests(data.map(mapRequestRow));
+      }
+      const channel = supabase
+        .channel("admin-requests")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "requests" },
+          (payload) => {
+            if (!isMounted) return;
+            if (payload.eventType === "DELETE") {
+              setRequests((prev) =>
+                prev.filter((request) => request.id !== payload.old.id),
+              );
+              return;
+            }
+            if (payload.new) {
+              upsertRequest(payload.new);
+            }
+          },
+        )
+        .subscribe();
+      return () => {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {
+          void e;
+        }
+      };
+    })();
     (async () => {
       const { data } = await supabase
         .from("reviews")
