@@ -234,6 +234,24 @@ function ConsultationRequestPage({ type }) {
     return await uploadViaSupabase(file);
   };
 
+  const generateUuid = () => {
+    const cryptoObj = globalThis.crypto;
+    if (cryptoObj?.randomUUID) {
+      return cryptoObj.randomUUID();
+    }
+    if (!cryptoObj?.getRandomValues) {
+      return `request-${Date.now()}`;
+    }
+    const bytes = new Uint8Array(16);
+    cryptoObj.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!option) {
@@ -275,8 +293,7 @@ function ConsultationRequestPage({ type }) {
         : getNextRequestNumber();
       const requestRef = `Request ${requestNumber}`;
       const price = Number(option.price || 0);
-      const requestId =
-        globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`;
+      const requestId = generateUuid();
       if (option.redirectOnly) {
         const whatsappNumber = normalizeWhatsAppNumber(settings.whatsappNumber);
         if (!whatsappNumber) {
