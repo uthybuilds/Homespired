@@ -1,8 +1,19 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const env = (globalThis as any).Deno?.env;
+const SUPABASE_URL = env?.get("SUPABASE_URL") || "";
+const SERVICE_KEY = env?.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const supabase = createClient(supabaseUrl, serviceRoleKey);
+const JSON_HEADERS = {
+  "Content-Type": "application/json",
+  authorization: `Bearer ${SERVICE_KEY}`,
+  apikey: SERVICE_KEY,
+};
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 function getCookie(req: Request, name: string): string | null {
   const cookie = req.headers.get("Cookie") || "";
@@ -19,9 +30,20 @@ function setCookie(token: string) {
   return `cart_token=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 }
 
-Deno.serve(async (req) => {
+const serve =
+  (globalThis as any).Deno?.serve ||
+  ((handler: (req: Request) => Response | Promise<Response>) => {
+    addEventListener("fetch", (event: any) =>
+      event.respondWith(handler(event.request)),
+    );
+  });
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS });
+  }
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: CORS });
   }
 
   let body: any = {};
@@ -43,6 +65,7 @@ Deno.serve(async (req) => {
   if (action === "ensure") {
     return new Response(JSON.stringify({ ok: true }), {
       headers: {
+        ...CORS,
         "Content-Type": "application/json",
         ...(setCookieHeader ? { "Set-Cookie": setCookieHeader } : {}),
       },
@@ -50,14 +73,15 @@ Deno.serve(async (req) => {
   }
 
   if (action === "read") {
-    const { data } = await supabase
-      .from("carts_guest")
-      .select("items")
-      .eq("token", token as string)
-      .maybeSingle();
-    const items = Array.isArray(data?.items) ? data.items : [];
+    const url =
+      `${SUPABASE_URL}/rest/v1/carts_guest` +
+      `?select=items&token=eq.${encodeURIComponent(token as string)}&limit=1`;
+    const res = await fetch(url, { headers: JSON_HEADERS });
+    const rows = (await res.json().catch(() => [])) as any[];
+    const items = Array.isArray(rows?.[0]?.items) ? rows[0].items : [];
     return new Response(JSON.stringify({ items }), {
       headers: {
+        ...CORS,
         "Content-Type": "application/json",
         ...(setCookieHeader ? { "Set-Cookie": setCookieHeader } : {}),
       },
@@ -66,13 +90,22 @@ Deno.serve(async (req) => {
 
   if (action === "write") {
     const items = Array.isArray(body?.items) ? body.items : [];
-    await supabase.from("carts_guest").upsert({
-      token,
-      items,
-      updated_at: new Date().toISOString(),
+    const url = `${SUPABASE_URL}/rest/v1/carts_guest`;
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        ...JSON_HEADERS,
+        Prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({
+        token,
+        items,
+        updated_at: new Date().toISOString(),
+      }),
     });
     return new Response(JSON.stringify({ ok: true }), {
       headers: {
+        ...CORS,
         "Content-Type": "application/json",
         ...(setCookieHeader ? { "Set-Cookie": setCookieHeader } : {}),
       },
@@ -81,6 +114,8 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify({ error: "invalid action" }), {
     status: 400,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 });
+
+export {};

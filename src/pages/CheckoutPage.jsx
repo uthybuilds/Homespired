@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import { useToast } from "../components/useToast.js";
-import supabase, { invokeEdgeFunction } from "../utils/supabaseClient.js";
+import supabase from "../utils/supabaseClient.js";
 import {
   addOrder,
   adjustInventory,
@@ -68,7 +68,7 @@ function CheckoutPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [form.email]);
 
   useEffect(() => {
     const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
@@ -119,7 +119,7 @@ function CheckoutPage() {
     return () => {
       active = false;
     };
-  }, [form.email]);
+  }, [form.address, form.city, form.email, form.name, form.phone, form.state]);
 
   useEffect(() => {
     const isCloud = import.meta.env.VITE_STORAGE_MODE === "cloud";
@@ -245,83 +245,28 @@ function CheckoutPage() {
     }));
   };
 
-  const fileToBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = String(reader.result || "");
-        const base64 = text.includes(",") ? text.split(",")[1] : text;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
   const uploadProof = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) {
+      return "";
+    }
     try {
-      if (!cloudName || !uploadPreset) throw new Error("skip-cloudinary");
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", uploadPreset);
+      formData.append("folder", "homespired-orders");
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        },
+        { method: "POST", body: formData },
       );
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const message =
-          data?.error?.message || data?.error || "Upload failed on Cloudinary.";
-        throw new Error(message);
-      }
-      if (!data?.secure_url) {
-        throw new Error("Upload failed. No file URL returned.");
+      if (data?.error || !response.ok || !data?.secure_url) {
+        return "";
       }
       return data.secure_url;
     } catch {
-      // First fallback: edge function with service role to avoid RLS/policy issues
-      try {
-        const base64 = await fileToBase64(file);
-        const { data, error } = await invokeEdgeFunction("upload-proof", {
-          filename: file.name,
-          contentType: file.type || "image/*",
-          base64,
-        });
-        if (error || !data?.url) {
-          throw new Error(error?.message || "Upload failed on edge.");
-        }
-        return data.url;
-      } catch {
-        // Second fallback: direct client upload to public bucket
-        try {
-          const path = `proofs/${Date.now()}-${file.name}`;
-          const { error: upErr } = await supabase.storage
-            .from("proofs")
-            .upload(path, file, {
-              upsert: true,
-              contentType: file.type || "image/*",
-              cacheControl: "3600",
-            });
-          if (upErr) throw upErr;
-          const { data: pub } = supabase.storage
-            .from("proofs")
-            .getPublicUrl(path);
-          if (!pub?.publicUrl) {
-            throw new Error("Upload failed: storage URL unavailable.");
-          }
-          return pub.publicUrl;
-        } catch (fallbackErr) {
-          const message =
-            fallbackErr instanceof Error
-              ? fallbackErr.message
-              : "Upload failed. Please try again.";
-          throw new Error(message);
-        }
-      }
+      return "";
     }
   };
 

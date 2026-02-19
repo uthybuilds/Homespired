@@ -1,72 +1,99 @@
-// Minimal, CORS-safe proof uploader to Supabase Storage using service role
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const env = (globalThis as any).Deno?.env;
+const SUPABASE_URL = env?.get("SUPABASE_URL");
+const SERVICE_KEY = env?.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const supabase = createClient(supabaseUrl, serviceKey, {
-  global: { headers: { Authorization: `Bearer ${serviceKey}` } },
-});
-
-const corsHeaders = {
+const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-function toUint8ArrayFromBase64(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+function u8FromBase64(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+async function ensureBucket() {
+  const url = `${SUPABASE_URL}/storage/v1/bucket`;
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${SERVICE_KEY}`,
+      apikey: String(SERVICE_KEY),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ name: "proofs", public: true }),
+  }).catch(() => null);
+}
+
+function publicUrl(path: string) {
+  return `${SUPABASE_URL}/storage/v1/object/public/${path}`;
+}
+
+const serve =
+  (globalThis as any).Deno?.serve ||
+  ((handler: (req: Request) => Response | Promise<Response>) => {
+    addEventListener("fetch", (event: any) =>
+      event.respondWith(handler(event.request)),
+    );
+  });
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST")
+    return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
   try {
-    if (req.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
-    }
-
-    const { filename, contentType, base64 } = await req.json().catch(() => ({}));
-    if (!filename || !base64) {
-      return new Response("filename and base64 are required", { status: 400, headers: corsHeaders });
-    }
-
-    // Ensure bucket exists (id: proofs, public: true)
-    await supabase.storage.createBucket("proofs", { public: true }).catch(() => {});
-
-    const safeName = String(filename).replace(/[^\w.\-]+/g, "_");
-    const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
-    const bytes = toUint8ArrayFromBase64(base64);
-
-    const { error: uploadErr } = await supabase.storage
-      .from("proofs")
-      .upload(path, bytes, {
-        upsert: true,
-        contentType: contentType || "application/octet-stream",
-        cacheControl: "3600",
+    const { filename, contentType, base64 } = await req
+      .json()
+      .catch(() => ({}));
+    if (!filename || !base64)
+      return new Response("filename and base64 are required", {
+        status: 400,
+        headers: CORS,
       });
-    if (uploadErr) {
-      return new Response(uploadErr.message, { status: 400, headers: corsHeaders });
-    }
 
-    const { data: pub } = supabase.storage.from("proofs").getPublicUrl(path);
-    if (!pub?.publicUrl) {
-      return new Response("Failed to get public URL", { status: 500, headers: corsHeaders });
-    }
+    await ensureBucket();
+    const safe = String(filename).replace(/[^\w.\-]+/g, "_");
+    const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}-${safe}`;
+    const bytes = u8FromBase64(base64);
 
-    return new Response(JSON.stringify({ url: pub.publicUrl }), {
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${path}`;
+    const ab = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(ab).set(bytes);
+    const blob = new Blob([ab], {
+      type: contentType || "application/octet-stream",
     });
-  } catch (e) {
+    const res = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${SERVICE_KEY}`,
+        apikey: String(SERVICE_KEY),
+        "content-type": blob.type,
+        "cache-control": "3600",
+      },
+      body: blob,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return new Response(text || "Upload failed", {
+        status: 400,
+        headers: CORS,
+      });
+    }
+
+    return new Response(JSON.stringify({ url: publicUrl(path) }), {
+      headers: { "content-type": "application/json", ...CORS },
+    });
+  } catch (e: any) {
     return new Response(String(e?.message || e || "Unknown error"), {
       status: 500,
-      headers: corsHeaders,
+      headers: CORS,
     });
   }
 });
 
+export {};
