@@ -61,7 +61,7 @@ function ForgotPasswordPage() {
               to={`/confirm-email?type=recovery&email=${encodeURIComponent(
                 email.trim(),
               )}`}
-              className="mt-4 inline-flex rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+              className="mt-4 inline-flex rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
             >
               Enter Code
             </NavLink>
@@ -69,7 +69,7 @@ function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={status.type === "loading"}
-            className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+            className="mt-6 w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
           >
             {status.type === "loading" ? "Sending..." : "Send Reset Link"}
           </button>

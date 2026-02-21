@@ -27,11 +27,11 @@ function PressPage() {
         <div className="space-y-4">
           <p className="text-xs uppercase tracking-[0.4em] text-ash">Press</p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            Editorial features and global recognition.
+            Editorial features and recognition.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Homespired projects have been featured for their refined approach to
-            materiality, lighting, and calm modern luxury.
+            Projects featured for material detail, lighting, and calm modern
+            design.
           </p>
         </div>
 

@@ -106,7 +106,7 @@ function Navbar() {
         <div className="flex items-center gap-4 text-white lg:gap-5">
           <NavLink
             to="/cart"
-            className="relative rounded-full border border-white/50 bg-white/10 p-2 transition hover:border-white"
+            className="relative rounded-none border border-white/50 bg-white/10 p-2 transition hover:border-white"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
               <path d="M6.5 6h14l-1.6 8.5a2 2 0 0 1-2 1.5H9.1a2 2 0 0 1-2-1.6L5.4 4H2V2h4a1 1 0 0 1 1 .8L7.3 6Zm3 14a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
@@ -122,7 +122,7 @@ function Navbar() {
               {isAdmin ? (
                 <NavLink
                   to="/admin"
-                  className="hidden whitespace-nowrap rounded-full border border-white/50 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] transition hover:border-white md:inline-flex"
+                  className="hidden whitespace-nowrap rounded-none border border-white/50 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] transition hover:border-white md:inline-flex"
                 >
                   Dashboard
                 </NavLink>
@@ -131,7 +131,7 @@ function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                  className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/50 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:border-white"
+                  className="flex items-center gap-2 whitespace-nowrap rounded-none border border-white/50 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:border-white"
                 >
                   Account
                   <span className="text-xs">▾</span>
@@ -177,7 +177,7 @@ function Navbar() {
               <NavLink
                 to="/login"
                 aria-label="Account"
-                className="hidden rounded-full border border-white/50 bg-white/10 p-2 transition hover:border-white md:inline-flex"
+                className="hidden rounded-none border border-white/50 bg-white/10 p-2 transition hover:border-white md:inline-flex"
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                   <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" />
@@ -188,7 +188,7 @@ function Navbar() {
           {!isAdmin ? (
             <NavLink
               to="/consultations"
-              className="hidden whitespace-nowrap rounded-full bg-black/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition hover:bg-black hover:text-white md:inline-flex"
+              className="hidden whitespace-nowrap rounded-none bg-black/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition hover:bg-black hover:text-white md:inline-flex"
             >
               Book Appointment
             </NavLink>
@@ -196,7 +196,7 @@ function Navbar() {
           <button
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-full border border-white/50 bg-white/10 p-2 text-white transition hover:border-white md:hidden"
+            className="inline-flex items-center justify-center rounded-none border border-white/50 bg-white/10 p-2 text-white transition hover:border-white md:hidden"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
               <path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" />
@@ -219,7 +219,7 @@ function Navbar() {
                     type="button"
                     aria-label="Close menu"
                     onClick={() => setIsOpen(false)}
-                    className="rounded-full border border-white/60 p-2 text-white"
+                    className="rounded-none border border-white/60 p-2 text-white"
                   >
                     <svg
                       viewBox="0 0 24 24"

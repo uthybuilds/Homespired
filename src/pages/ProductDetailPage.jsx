@@ -165,7 +165,7 @@ function ProductDetailPage() {
           </p>
           <NavLink
             to="/shop"
-            className="inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+            className="inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
           >
             Back to Store
           </NavLink>
@@ -202,7 +202,7 @@ function ProductDetailPage() {
               <button
                 onClick={() => addToCart(product)}
                 disabled={Number(product.inventory || 0) === 0}
-                className="rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                className="rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
               >
                 {Number(product.inventory || 0) === 0
                   ? "Out of Stock"
@@ -210,7 +210,7 @@ function ProductDetailPage() {
               </button>
               <NavLink
                 to="/checkout"
-                className="rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                className="rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
               >
                 Buy Now
               </NavLink>
@@ -356,7 +356,7 @@ function ProductDetailPage() {
                 />
                 <button
                   type="submit"
-                  className="rounded-full bg-obsidian px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                  className="rounded-none bg-obsidian px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
                 >
                   Post Review
                 </button>

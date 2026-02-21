@@ -515,7 +515,7 @@ function ConsultationRequestPage({ type }) {
                   ? "/classes"
                   : "/advisory"
             }
-            className="inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+            className="inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
           >
             Back to Packages
           </NavLink>
@@ -698,7 +698,7 @@ function ConsultationRequestPage({ type }) {
             <button
               type="submit"
               disabled={status.type === "loading"}
-              className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status.type === "loading"
                 ? "Processing..."

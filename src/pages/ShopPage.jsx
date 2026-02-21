@@ -15,7 +15,10 @@ const Motion = motion;
 function ShopPage() {
   const [catalog, setCatalog] = useState(() => getCatalog());
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("category") || "All";
+  });
   const [session, setSession] = useState(null);
   const adminEmail = "uthmanajanaku@gmail.com";
 
@@ -24,16 +27,20 @@ function ShopPage() {
     return ["All", ...unique];
   }, [catalog]);
 
+  const resolvedCategory = useMemo(() => {
+    return categories.includes(activeCategory) ? activeCategory : "All";
+  }, [activeCategory, categories]);
+
   const filtered = useMemo(() => {
     return catalog.filter((item) => {
       const matchesCategory =
-        activeCategory === "All" || item.category === activeCategory;
+        resolvedCategory === "All" || item.category === resolvedCategory;
       const matchesQuery =
         item.name.toLowerCase().includes(query.toLowerCase()) ||
         item.description.toLowerCase().includes(query.toLowerCase());
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, catalog, query]);
+  }, [catalog, query, resolvedCategory]);
 
   useEffect(() => {
     let isActive = true;
@@ -116,11 +123,10 @@ function ShopPage() {
             Signature Store
           </p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            A curated store for signature pieces and styling.
+            Signature pieces and styling, curated.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Every piece is uploaded by the studio in the admin dashboard for
-            real‑time catalog updates.
+            Items are added by the studio for real‑time catalog updates.
           </p>
         </div>
 
@@ -144,7 +150,7 @@ function ShopPage() {
             {isAdmin ? (
               <NavLink
                 to="/admin"
-                className="rounded-full bg-obsidian px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                className="rounded-none bg-obsidian px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
               >
                 Admin Dashboard
               </NavLink>
@@ -157,8 +163,8 @@ function ShopPage() {
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`rounded-full border px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
-                activeCategory === category
+              className={`rounded-none border px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
+                resolvedCategory === category
                   ? "border-obsidian bg-obsidian text-porcelain"
                   : "border-ash text-obsidian"
               }`}
@@ -174,12 +180,12 @@ function ShopPage() {
               No products available yet.
             </h2>
             <p className="mt-3 text-sm text-ash">
-              We’re curating the first collection. Please check back soon.
+              The first collection is coming soon. Please check back.
             </p>
             {isAdmin ? (
               <NavLink
                 to="/admin"
-                className="mt-6 inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                className="mt-6 inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
               >
                 Go to Admin Dashboard
               </NavLink>
@@ -216,14 +222,14 @@ function ShopPage() {
                     <div className="flex gap-2">
                       <NavLink
                         to={`/shop/${product.id}`}
-                        className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                        className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                       >
                         View
                       </NavLink>
                       <button
                         onClick={() => addToCart(product)}
                         disabled={Number(product.inventory || 0) === 0}
-                        className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-none bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {Number(product.inventory || 0) === 0
                           ? "Out of Stock"

@@ -3,12 +3,8 @@ import Navbar from "../components/Navbar.jsx";
 import Hero from "../components/Hero.jsx";
 import PortfolioSection from "../components/PortfolioSection.jsx";
 import SignaturePiecesSection from "../components/SignaturePiecesSection.jsx";
-import ConsultationsSection from "../components/ConsultationsSection.jsx";
 import ClassSection from "../components/ClassSection.jsx";
-import ContactSection from "../components/ContactSection.jsx";
 import AboutSection from "../components/AboutSection.jsx";
-import TestimonialsSection from "../components/TestimonialsSection.jsx";
-import FaqSection from "../components/FaqSection.jsx";
 import NewsletterSection from "../components/NewsletterSection.jsx";
 import Footer from "../components/Footer.jsx";
 
@@ -26,32 +22,20 @@ function Home() {
       <Navbar />
       <Hero />
       <Motion.div {...sectionMotionProps}>
-        <ConsultationsSection />
+        <PortfolioSection />
       </Motion.div>
       <Motion.div {...sectionMotionProps}>
         <ClassSection />
       </Motion.div>
       <Motion.div {...sectionMotionProps}>
-        <PortfolioSection />
+        <SignaturePiecesSection />
       </Motion.div>
       <Motion.div {...sectionMotionProps}>
         <AboutSection />
       </Motion.div>
-      <Motion.div {...sectionMotionProps}>
-        <SignaturePiecesSection />
-      </Motion.div>
-      <Motion.div {...sectionMotionProps}>
-        <TestimonialsSection />
-      </Motion.div>
       <div>
         <NewsletterSection />
       </div>
-      <Motion.div {...sectionMotionProps}>
-        <FaqSection />
-      </Motion.div>
-      <Motion.div {...sectionMotionProps}>
-        <ContactSection />
-      </Motion.div>
       <Footer />
     </div>
   );

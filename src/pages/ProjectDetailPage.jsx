@@ -33,7 +33,7 @@ function ProjectDetailPage() {
           </p>
           <NavLink
             to="/portfolio"
-            className="inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+            className="inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
           >
             Back to Portfolio
           </NavLink>
@@ -78,13 +78,13 @@ function ProjectDetailPage() {
           <div className="absolute inset-0 flex items-center justify-between px-6">
             <button
               onClick={handlePrev}
-              className="rounded-full border border-white/70 bg-black/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition"
+              className="rounded-none border border-white/70 bg-black/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition"
             >
               Prev
             </button>
             <button
               onClick={handleNext}
-              className="rounded-full border border-white/70 bg-black/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition"
+              className="rounded-none border border-white/70 bg-black/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition"
             >
               Next
             </button>

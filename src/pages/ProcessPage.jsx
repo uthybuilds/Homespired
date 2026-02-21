@@ -7,28 +7,23 @@ const Motion = motion;
 const steps = [
   {
     title: "Discovery",
-    detail:
-      "We explore your lifestyle, spatial goals, and visual references to shape the creative direction.",
+    detail: "We learn your goals, lifestyle, and visual references.",
   },
   {
     title: "Concept",
-    detail:
-      "We define the palette, materials, and architectural strategy with layouts and moodboards.",
+    detail: "We define the palette, materials, and layout direction.",
   },
   {
     title: "Design Development",
-    detail:
-      "Custom millwork, furniture selection, and lighting plans are refined into a cohesive proposal.",
+    detail: "We refine millwork, furniture, and lighting into a full plan.",
   },
   {
     title: "Procurement",
-    detail:
-      "We manage sourcing, vendor coordination, and logistics with white‑glove precision.",
+    detail: "We manage sourcing, vendors, and logistics.",
   },
   {
     title: "Installation",
-    detail:
-      "Our team stages, styles, and completes the space for a refined final reveal.",
+    detail: "We stage, style, and complete the final reveal.",
   },
 ];
 
@@ -46,11 +41,10 @@ function ProcessPage() {
         >
           <p className="text-xs uppercase tracking-[0.4em] text-ash">Process</p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            A thoughtful, guided journey from concept to completion.
+            A clear path from concept to completion.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Our process is designed to feel calm, transparent, and elevated from
-            the first conversation to the final styling.
+            We keep the process calm and transparent from start to finish.
           </p>
         </Motion.div>
 

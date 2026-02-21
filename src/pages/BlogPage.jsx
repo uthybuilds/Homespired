@@ -12,11 +12,10 @@ function BlogPage() {
         <div className="space-y-4">
           <p className="text-xs uppercase tracking-[0.4em] text-ash">Journal</p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            Design insights from the Homespired studio.
+            Design notes from the studio.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Explore design perspectives, project notes, and styling guidance
-            curated by our team.
+            Ideas, project notes, and styling tips from our team.
           </p>
         </div>
 
@@ -26,11 +25,11 @@ function BlogPage() {
               Journal updates are coming soon.
             </h2>
             <p className="mt-3 text-sm text-ash">
-              For studio insights or press requests, reach out to the team.
+              For press or studio requests, reach out to the team.
             </p>
             <NavLink
               to="/contact"
-              className="mt-6 inline-flex rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+              className="mt-6 inline-flex rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
             >
               Contact the Studio
             </NavLink>

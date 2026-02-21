@@ -48,7 +48,7 @@ function CartPage() {
             </p>
             <NavLink
               to="/shop"
-              className="mt-6 inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+              className="mt-6 inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
             >
               Explore Store
             </NavLink>
@@ -93,7 +93,7 @@ function CartPage() {
                     />
                     <button
                       onClick={() => handleRemove(item.id)}
-                      className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                      className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                     >
                       Remove
                     </button>
@@ -113,14 +113,14 @@ function CartPage() {
               </div>
               <NavLink
                 to="/checkout"
-                className="mt-6 flex w-full items-center justify-center rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                className="mt-6 flex w-full items-center justify-center rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
               >
                 Continue to Checkout
               </NavLink>
               <button
                 type="button"
                 onClick={() => setItems(clearCart())}
-                className="mt-3 flex w-full items-center justify-center rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                className="mt-3 flex w-full items-center justify-center rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
               >
                 Clear Cart
               </button>

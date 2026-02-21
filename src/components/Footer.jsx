@@ -76,6 +76,9 @@ function Footer() {
               <p className="text-xs uppercase tracking-[0.3em] text-porcelain/60">
                 Support
               </p>
+              <a href="/#newsletter" className="transition">
+                Newsletter
+              </a>
               <NavLink to="/faq" className="transition">
                 FAQ
               </NavLink>
@@ -100,7 +103,7 @@ function Footer() {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Homespired Instagram"
-                className="rounded-full border border-porcelain/30 p-2 transition"
+                className="rounded-none border border-porcelain/30 p-2 transition"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -120,7 +123,7 @@ function Footer() {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Homespired WhatsApp"
-                className="rounded-full border border-porcelain/30 p-2 transition"
+                className="rounded-none border border-porcelain/30 p-2 transition"
               >
                 <svg
                   viewBox="0 0 24 24"

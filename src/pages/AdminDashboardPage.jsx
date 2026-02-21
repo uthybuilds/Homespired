@@ -29,14 +29,7 @@ import {
 } from "../utils/catalogStore.js";
 import supabase, { invokeEdgeFunction } from "../utils/supabaseClient.js";
 
-const categories = [
-  "Furniture",
-  "Lighting",
-  "Textiles",
-  "Art",
-  "Styling Kits",
-  "Custom Commissions",
-];
+const categories = ["Furniture", "Art"];
 
 const navSections = [
   { id: "overview", label: "Overview" },
@@ -1113,7 +1106,7 @@ function AdminDashboardPage() {
             <button
               type="button"
               onClick={() => setIsMenuOpen(true)}
-              className="rounded-full border border-ash px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition lg:hidden"
+              className="rounded-none border border-ash px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition lg:hidden"
             >
               Menu
             </button>
@@ -1131,7 +1124,7 @@ function AdminDashboardPage() {
                       key={section.id}
                       type="button"
                       onClick={() => handleSectionChange(section.id)}
-                      className="block w-full rounded-full border border-ash/30 bg-porcelain px-4 py-2 text-left text-[11px] text-obsidian transition hover:border-ash"
+                      className="block w-full rounded-none border border-ash/30 bg-porcelain px-4 py-2 text-left text-[11px] text-obsidian transition hover:border-ash"
                     >
                       {section.label}
                     </button>
@@ -1148,7 +1141,7 @@ function AdminDashboardPage() {
                       type="button"
                       onClick={importLocalToCloud}
                       disabled={isImporting}
-                      className="rounded-full border border-ash/30 bg-porcelain px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition hover:border-ash disabled:opacity-60"
+                      className="rounded-none border border-ash/30 bg-porcelain px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition hover:border-ash disabled:opacity-60"
                     >
                       {isImporting
                         ? "Importing…"
@@ -1337,14 +1330,14 @@ function AdminDashboardPage() {
                                 <button
                                   type="button"
                                   onClick={saveEdit}
-                                  className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                                  className="rounded-none bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
                                 >
                                   Save
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setEditingId("")}
-                                  className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                  className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                                 >
                                   Cancel
                                 </button>
@@ -1353,14 +1346,14 @@ function AdminDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => startEdit(item)}
-                                className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                               >
                                 Edit
                               </button>
                             )}
                             <button
                               onClick={() => handleRemove(item.id)}
-                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                              className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                             >
                               Remove
                             </button>
@@ -1463,7 +1456,7 @@ function AdminDashboardPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+                      className="w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       Publish Product
                     </button>
@@ -1568,7 +1561,7 @@ function AdminDashboardPage() {
                     type="button"
                     onClick={handleSaveBusinessSettings}
                     disabled={!isBusinessDirty || hasSettingsErrors}
-                    className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+                    className="mt-6 w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     Save Business Settings
                   </button>
@@ -1688,14 +1681,14 @@ function AdminDashboardPage() {
                         type="button"
                         onClick={handleSavePricingSettings}
                         disabled={!isPricingDirty}
-                        className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+                        className="w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         Save Pricing
                       </button>
                       <button
                         type="button"
                         onClick={resetSettingsToDefaults}
-                        className="w-full rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                        className="w-full rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                       >
                         Reset Defaults
                       </button>
@@ -1773,7 +1766,7 @@ function AdminDashboardPage() {
                                       message: "Order status saved.",
                                     });
                                   }}
-                                  className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                                  className="rounded-none border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
                                 >
                                   {orderStatusOptions.map((option) => (
                                     <option key={option} value={option}>
@@ -1799,7 +1792,7 @@ function AdminDashboardPage() {
                                     });
                                   }}
                                   disabled={!pendingOrderStatus[order.id]}
-                                  className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                                  className="rounded-none bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
                                 >
                                   Save Status
                                 </button>
@@ -1819,14 +1812,14 @@ function AdminDashboardPage() {
                                     normalizeStatus(order.status, "Pending") ===
                                     "Cancelled"
                                   }
-                                  className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
+                                  className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   Cancel & Restock
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleCopyInvoice(order)}
-                                  className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                  className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                                 >
                                   Copy Invoice
                                 </button>
@@ -1977,7 +1970,7 @@ function AdminDashboardPage() {
                                       [request.id]: event.target.value,
                                     }))
                                   }
-                                  className="rounded-full border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
+                                  className="rounded-none border border-ash/40 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian focus:border-obsidian focus:outline-none"
                                 >
                                   {requestStatusOptions.map((option) => (
                                     <option key={option} value={option}>
@@ -2002,7 +1995,7 @@ function AdminDashboardPage() {
                                       message: "Request status saved.",
                                     });
                                   }}
-                                  className="rounded-full bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                                  className="rounded-none bg-obsidian px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
                                 >
                                   Save Status
                                 </button>
@@ -2011,7 +2004,7 @@ function AdminDashboardPage() {
                                     href={request.proofUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                                    className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                                   >
                                     View Proof
                                   </a>
@@ -2243,7 +2236,7 @@ function AdminDashboardPage() {
                     </label>
                     <button
                       type="submit"
-                      className="w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                      className="w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
                     >
                       Save Discount
                     </button>
@@ -2294,7 +2287,7 @@ function AdminDashboardPage() {
                               onClick={() =>
                                 handleToggleDiscount(discount.code)
                               }
-                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                              className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                             >
                               {discount.active ? "Disable" : "Enable"}
                             </button>
@@ -2303,7 +2296,7 @@ function AdminDashboardPage() {
                               onClick={() =>
                                 handleRemoveDiscount(discount.code)
                               }
-                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                              className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                             >
                               Remove
                             </button>
@@ -2465,7 +2458,7 @@ function AdminDashboardPage() {
                             <button
                               type="button"
                               onClick={() => removeReview(rev.id)}
-                              className="rounded-full border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                              className="rounded-none border border-ash px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                             >
                               Remove
                             </button>
@@ -2498,7 +2491,7 @@ function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setIsMenuOpen(false)}
-            className="rounded-full border border-ash px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian"
+            className="rounded-none border border-ash px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian"
           >
             Close
           </button>
@@ -2509,7 +2502,7 @@ function AdminDashboardPage() {
               key={section.id}
               type="button"
               onClick={() => handleSectionChange(section.id)}
-              className="block w-full rounded-full border border-ash/30 bg-white/70 px-4 py-3 text-left text-[11px] text-obsidian transition hover:border-ash"
+              className="block w-full rounded-none border border-ash/30 bg-white/70 px-4 py-3 text-left text-[11px] text-obsidian transition hover:border-ash"
             >
               {section.label}
             </button>

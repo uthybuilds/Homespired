@@ -31,7 +31,7 @@ function ConsultationsSection() {
             </p>
             <NavLink
               to="/advisory"
-              className="mt-6 inline-flex rounded-full bg-obsidian px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+              className="mt-6 inline-flex rounded-none bg-obsidian px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
             >
               View Advisory
             </NavLink>
@@ -48,7 +48,7 @@ function ConsultationsSection() {
             </p>
             <NavLink
               to="/inspections"
-              className="mt-6 inline-flex rounded-full border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+              className="mt-6 inline-flex rounded-none border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
             >
               View Inspections
             </NavLink>

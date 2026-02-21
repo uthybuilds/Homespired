@@ -9,25 +9,25 @@ const testimonials = [
     name: "Amaka I.",
     role: "Private Residence",
     quote:
-      "Homespired understood the mood we wanted instantly. The result is a refined, calm space that feels like a retreat.",
+      "They understood the mood instantly. The space feels calm and refined.",
   },
   {
     name: "Tobi A.",
     role: "Family Villa",
     quote:
-      "The process was seamless and the design is breathtaking. Every room feels layered and intentional.",
+      "The process was easy, and every room feels layered and intentional.",
   },
   {
     name: "Mariam K.",
     role: "Entertaining Suite",
     quote:
-      "The lighting and material palette completely changed how we live in the space. It’s elegant and welcoming.",
+      "The lighting and materials changed how we live. It’s elegant and warm.",
   },
   {
     name: "Adeola F.",
     role: "Apartment Refresh",
     quote:
-      "They balanced my existing furniture with new custom pieces perfectly. It feels cohesive and luxurious.",
+      "They blended my furniture with custom pieces. It feels cohesive.",
   },
 ];
 
@@ -47,11 +47,10 @@ function TestimonialsPage() {
             Testimonials
           </p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            Clients describe the experience as calm, elevated, and effortless.
+            Clients describe the experience as calm and easy.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Each project is built around the client’s lifestyle. These are the
-            words that matter most to us.
+            Every project centers on your lifestyle. Here is what clients share.
           </p>
         </Motion.div>
 

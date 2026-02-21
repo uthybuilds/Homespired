@@ -60,7 +60,7 @@ function OrdersPage() {
             </p>
             <NavLink
               to="/shop"
-              className="mt-6 inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+              className="mt-6 inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
             >
               Visit the Store
             </NavLink>

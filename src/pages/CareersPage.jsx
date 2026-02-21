@@ -30,7 +30,7 @@ function CareersPage() {
             </p>
             <NavLink
               to="/contact"
-              className="mt-6 inline-flex rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+              className="mt-6 inline-flex rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
             >
               Contact Recruitment
             </NavLink>

@@ -1,117 +1,87 @@
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
-import ceoPrimary from "../Homespired CEO 1.jpeg";
-
-const Motion = motion;
+import { portfolioProjects } from "../data/portfolio.js";
 
 function Hero() {
+  const heroImages = useMemo(
+    () =>
+      portfolioProjects
+        .flatMap((project) => project.images)
+        .filter(Boolean)
+        .slice(0, 6),
+    [],
+  );
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [loadedIndices, setLoadedIndices] = useState([]);
+
+  useEffect(() => {
+    if (heroImages.length === 0) return undefined;
+    let isActive = true;
+    heroImages.forEach((src, index) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        if (!isActive) return;
+        setLoadedIndices((prev) =>
+          prev.includes(index) ? prev : [...prev, index],
+        );
+        setActiveIndex((prev) => (prev === null ? index : prev));
+      };
+    });
+    return () => {
+      isActive = false;
+    };
+  }, [heroImages]);
+
+  useEffect(() => {
+    if (loadedIndices.length < 2 || activeIndex === null) return undefined;
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => {
+        if (prev === null) return loadedIndices[0];
+        const currentPos = loadedIndices.indexOf(prev);
+        const nextPos =
+          currentPos === -1 ? 0 : (currentPos + 1) % loadedIndices.length;
+        return loadedIndices[nextPos];
+      });
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [activeIndex, loadedIndices]);
+
   return (
-    <section className="relative flex min-h-screen items-center overflow-hidden pt-20 sm:pt-24">
+    <section className="relative flex min-h-[60vh] items-center overflow-hidden pt-20 sm:min-h-[70vh] sm:pt-24 lg:min-h-screen">
       <div className="absolute inset-0">
-        <img
-          src={ceoPrimary}
-          alt="Homespired CEO"
-          className="h-full w-full object-cover object-[center_20%]"
-        />
-        <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/30 to-black/50" />
+        {heroImages.map((src, index) => (
+          <div
+            key={src}
+            className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+              activeIndex === index ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {loadedIndices.includes(index) && src ? (
+              <img
+                src={src}
+                alt=""
+                loading={index === 0 ? "eager" : "lazy"}
+                className="h-full w-full object-cover"
+              />
+            ) : null}
+          </div>
+        ))}
+        <div className="absolute inset-0 bg-black/35" />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-6 pb-12 text-left text-white sm:gap-6 sm:pb-20">
-        <Motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-[10px] uppercase tracking-[0.4em] text-white/70 sm:text-xs sm:tracking-[0.45em]"
-        >
-          Founder Spotlight
-        </Motion.p>
-        <Motion.h1
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
-          className="max-w-4xl text-4xl font-semibold leading-tight sm:text-6xl lg:text-7xl drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)]"
-        >
-          Fatimah Adetona<span className="text-white"> Homespired</span>
-        </Motion.h1>
-        <Motion.p
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
-          className="max-w-2xl text-base text-white/80 sm:text-xl"
-        >
-          Futuristic interiors crafted to feel timeless, personal, and
-          uncompromisingly luxurious.
-        </Motion.p>
-        <Motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.12 }}
-          className="max-w-xl text-xs text-white/70 sm:text-base"
-        >
-          Available for Lagos-based projects and remote design consultations.
-        </Motion.p>
-        <Motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
-          className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/70 sm:text-[11px] sm:tracking-[0.32em]"
-        >
-          <span>Lagos-based studio</span>
-          <span className="h-1 w-1 rounded-full bg-white/70" />
-          <span>Full-service interiors</span>
-          <span className="h-1 w-1 rounded-full bg-white/70" />
-          <span>Private commissions</span>
-        </Motion.div>
-        <Motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
-          className="flex flex-wrap gap-3 sm:gap-4"
-        >
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-6 pb-12 text-center text-white sm:pb-20">
+        <h1 className="max-w-xl text-3xl font-semibold uppercase tracking-[0.3em] sm:text-5xl lg:text-6xl">
+          Curated Interiors
+        </h1>
+        <div>
           <NavLink
             to="/consultations"
-            className="rounded-full bg-black/85 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-white shadow-[0_16px_32px_rgba(0,0,0,0.45)] ring-1 ring-white/70 backdrop-blur transition sm:px-7 sm:py-3 sm:text-[12px] sm:tracking-[0.26em]"
+            className="border border-black bg-white px-7 py-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-black transition"
           >
-            Book Appointment
+            Book Consultation
           </NavLink>
-          <NavLink
-            to="/portfolio"
-            className="rounded-full border border-white/70 bg-white/10 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white backdrop-blur transition sm:px-7 sm:py-3 sm:text-xs sm:tracking-[0.24em]"
-          >
-            View Portfolio
-          </NavLink>
-        </Motion.div>
-        <Motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.25 }}
-          className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4"
-        >
-          <div className="rounded-2xl border border-white/15 bg-black/40 p-3 backdrop-blur sm:p-4">
-            <p className="text-[10px] uppercase tracking-[0.26em] text-white/60 sm:text-xs sm:tracking-[0.3em]">
-              Concept Direction
-            </p>
-            <p className="mt-2 text-xs text-white/80 sm:text-sm">
-              Clear spatial strategy, materials, and layout guidance.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/15 bg-black/40 p-3 backdrop-blur sm:p-4">
-            <p className="text-[10px] uppercase tracking-[0.26em] text-white/60 sm:text-xs sm:tracking-[0.3em]">
-              Spatial Styling
-            </p>
-            <p className="mt-2 text-xs text-white/80 sm:text-sm">
-              Layered textures, lighting, and bespoke finishes.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/15 bg-black/40 p-3 backdrop-blur sm:p-4">
-            <p className="text-[10px] uppercase tracking-[0.26em] text-white/60 sm:text-xs sm:tracking-[0.3em]">
-              Procurement & Install
-            </p>
-            <p className="mt-2 text-xs text-white/80 sm:text-sm">
-              Curated sourcing and white-glove execution.
-            </p>
-          </div>
-        </Motion.div>
+        </div>
       </div>
     </section>
   );

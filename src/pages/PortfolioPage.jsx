@@ -88,13 +88,13 @@ function PortfolioPage() {
               <div className="flex flex-wrap gap-3">
                 <NavLink
                   to={`/portfolio/${project.id}`}
-                  className="rounded-full bg-obsidian px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                  className="rounded-none bg-obsidian px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
                 >
                   View Project
                 </NavLink>
                 <NavLink
                   to="/consultations"
-                  className="rounded-full border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+                  className="rounded-none border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
                 >
                   Start a Similar Space
                 </NavLink>

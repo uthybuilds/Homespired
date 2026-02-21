@@ -91,7 +91,7 @@ function AccountPage() {
             </p>
             <NavLink
               to="/contact"
-              className="mt-6 inline-flex rounded-full bg-obsidian px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+              className="mt-6 inline-flex rounded-none bg-obsidian px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
             >
               Contact Support
             </NavLink>
@@ -136,7 +136,7 @@ function AccountPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="inline-flex rounded-full border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex rounded-none border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSaving ? "Saving..." : "Update Address"}
               </button>
@@ -151,7 +151,7 @@ function AccountPage() {
             </p>
             <NavLink
               to="/consultations"
-              className="mt-6 inline-flex rounded-full border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+              className="mt-6 inline-flex rounded-none border border-ash px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-obsidian transition"
             >
               Book Consultation
             </NavLink>

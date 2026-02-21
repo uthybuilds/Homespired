@@ -20,11 +20,10 @@ function ConsultationsPage() {
             Consultations
           </p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            Choose the experience that matches your project stage.
+            Choose the support that fits your stage.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Each category has its own page with pricing and a dedicated request
-            form.
+            Each category includes pricing and a request form.
           </p>
         </div>
 
@@ -40,15 +39,14 @@ function ConsultationsPage() {
               On-site Inspection
             </p>
             <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">
-              Site visits and client enquiries.
+              Site visits and scope reviews.
             </h2>
             <p className="mt-4 text-sm text-ash">
-              Book an in-person walkthrough, scope review, or location-based
-              design assessment.
+              Book a walkthrough, scope check, or location assessment.
             </p>
             <NavLink
               to="/inspections"
-              className="mt-6 inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+              className="mt-6 inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
             >
               View Inspections
             </NavLink>
@@ -65,15 +63,14 @@ function ConsultationsPage() {
               Advisory Sessions
             </p>
             <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">
-              Guided design direction.
+              Design guidance, tailored.
             </h2>
             <p className="mt-4 text-sm text-ash">
-              Select a tailored advisory package with pricing and upload your
-              confirmation.
+              Pick a package, view pricing, and submit your request.
             </p>
             <NavLink
               to="/advisory"
-              className="mt-6 inline-flex rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+              className="mt-6 inline-flex rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
             >
               View Advisory
             </NavLink>
@@ -90,15 +87,14 @@ function ConsultationsPage() {
               Interior Design Class
             </p>
             <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">
-              Learn interior design with guided training.
+              Design training, guided.
             </h2>
             <p className="mt-4 text-sm text-ash">
-              Choose the physical or online class and submit your enrollment
-              request.
+              Choose in-person or online and enroll.
             </p>
             <NavLink
               to="/classes"
-              className="mt-6 inline-flex rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+              className="mt-6 inline-flex rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
             >
               View Classes
             </NavLink>

@@ -34,10 +34,10 @@ function AdvisoryPage() {
             Advisory Sessions
           </p>
           <h1 className="text-4xl font-semibold sm:text-5xl">
-            Choose a consultation package tailored to your vision.
+            Choose a consultation package for your project.
           </h1>
           <p className="max-w-2xl text-base text-ash sm:text-lg">
-            Each tier includes pricing details and a dedicated request form.
+            Each tier includes pricing and request details.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ function AdvisoryPage() {
               </div>
               <NavLink
                 to={`/advisory/${option.id}`}
-                className="rounded-full bg-obsidian px-5 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+                className="rounded-none bg-obsidian px-5 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-porcelain transition"
               >
                 View Details
               </NavLink>

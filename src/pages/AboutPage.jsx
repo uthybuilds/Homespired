@@ -10,18 +10,15 @@ const Motion = motion;
 const values = [
   {
     title: "Curated Calm",
-    description:
-      "Every space is composed to feel serene, with clean lines, soft textures, and balanced proportions.",
+    description: "Serene spaces with clean lines, soft textures, and balance.",
   },
   {
     title: "Intentional Luxury",
-    description:
-      "Materials are selected for tactile richness and longevity, creating a quiet sense of luxury.",
+    description: "Materials chosen for tactile richness and lasting quality.",
   },
   {
     title: "Client‑Centered",
-    description:
-      "We translate your lifestyle into a refined environment that feels personal, functional, and future ready.",
+    description: "We translate your lifestyle into a refined, livable home.",
   },
 ];
 
@@ -29,26 +26,22 @@ const timeline = [
   {
     year: "2018",
     title: "Homespired founded",
-    description:
-      "A studio rooted in modern luxury, focused on elevated residential environments.",
+    description: "A studio focused on modern, livable luxury.",
   },
   {
     year: "2020",
     title: "Expanded service offerings",
-    description:
-      "Added procurement, custom millwork, and white‑glove styling services.",
+    description: "Added procurement, custom millwork, and styling services.",
   },
   {
     year: "2023",
     title: "Signature private commissions",
-    description:
-      "Delivered large‑scale projects across Lagos and select international clients.",
+    description: "Delivered large projects across Lagos and abroad.",
   },
   {
     year: "2026",
     title: "Homespired Studio",
-    description:
-      "A refined interior design studio delivering full‑service and signature collections.",
+    description: "A studio delivering full-service design and collections.",
   },
 ];
 
@@ -76,7 +69,7 @@ function AboutPage() {
       <Navbar />
       <main className="pt-24">
         <section
-          className="relative min-h-[60vh] overflow-hidden lg:min-h-[70vh]"
+          className="relative min-h-[45vh] overflow-hidden lg:min-h-[55vh]"
           onMouseMove={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
             const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -106,11 +99,10 @@ function AboutPage() {
               About
             </p>
             <h1 className="max-w-3xl text-4xl font-semibold sm:text-5xl">
-              A studio devoted to sculptural interiors and lived‑in luxury.
+              A studio for calm, sculptural interiors.
             </h1>
             <p className="max-w-2xl text-base text-white/80 sm:text-lg">
-              Homespired is led by Fatimah Adetona, crafting modern homes that
-              feel calm, elevated, and deeply personal.
+              Led by Fatimah Adetona, crafting modern homes that feel personal.
             </p>
           </div>
         </section>
@@ -128,22 +120,19 @@ function AboutPage() {
                 Our Story
               </p>
               <h2 className="max-w-3xl text-3xl font-semibold sm:text-4xl">
-                Spaces designed to feel timeless, calm, and unmistakably yours.
+                Timeless spaces made for real life.
               </h2>
               <p className="max-w-[60ch] text-base text-ash sm:text-lg">
-                We believe luxury should feel effortless. Our design process
-                blends architectural precision with softness, ensuring every
-                space is functional, refined, and deeply lived in.
+                We balance precision with warmth to create refined, livable
+                homes.
               </p>
               <p className="max-w-[60ch] text-base text-ash sm:text-lg">
-                From the first moodboard to the final styling layer, we curate a
-                narrative that reflects your lifestyle, your rituals, and the
-                way you want to feel at home.
+                From moodboard to final styling, we shape a home that fits how
+                you live.
               </p>
               <p className="max-w-[60ch] text-base text-ash sm:text-lg">
-                Homespired brings together bespoke craftsmanship, thoughtful
-                procurement, and a calm, collaborative process so every space
-                reads with clarity and intention.
+                Bespoke craft, thoughtful sourcing, and a clear process keep
+                each project calm.
               </p>
             </Motion.div>
 

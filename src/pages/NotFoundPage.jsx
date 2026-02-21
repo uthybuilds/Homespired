@@ -18,19 +18,19 @@ function NotFoundPage() {
         <div className="flex flex-wrap gap-3">
           <NavLink
             to="/portfolio"
-            className="rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
+            className="rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition"
           >
             View Portfolio
           </NavLink>
           <NavLink
             to="/shop"
-            className="rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+            className="rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
           >
             Visit Store
           </NavLink>
           <NavLink
             to="/consultations"
-            className="rounded-full border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
+            className="rounded-none border border-ash px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-obsidian transition"
           >
             Book Consultation
           </NavLink>

@@ -200,7 +200,7 @@ function ConfirmEmailPage() {
             <button
               type="submit"
               disabled={status.type === "loading"}
-              className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-6 w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status.type === "loading"
                 ? "Updating Password..."
@@ -210,7 +210,7 @@ function ConfirmEmailPage() {
             <button
               type="submit"
               disabled={status.type === "loading"}
-              className="mt-6 w-full rounded-full bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-6 w-full rounded-none bg-obsidian px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-porcelain transition disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status.type === "loading" ? "Verifying..." : "Verify Code"}
             </button>

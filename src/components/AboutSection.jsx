@@ -6,17 +6,16 @@ const pillars = [
   {
     title: "Vision",
     description:
-      "We design for calm, clarity, and elevated daily living, blending sculptural form with soft materiality.",
+      "We design calm, clear spaces with soft forms and modern comfort.",
   },
   {
     title: "Craft",
     description:
-      "Every space is composed with bespoke joinery, curated objects, and lighting that shapes mood.",
+      "We focus on joinery, curated objects, and lighting that shapes mood.",
   },
   {
     title: "Experience",
-    description:
-      "From first concept to final styling, we guide a seamless, white‑glove process.",
+    description: "From concept to styling, we guide a smooth process.",
   },
 ];
 
@@ -36,12 +35,11 @@ function AboutSection() {
               About Homespired
             </p>
             <h2 className="text-3xl font-semibold sm:text-4xl">
-              Design rooted in serenity, shaped by modern luxury.
+              Design with calm, modern luxury.
             </h2>
             <p className="text-base text-ash sm:text-lg">
-              Homespired creates interiors that feel curated yet welcoming. Our
-              studio blends thoughtful spatial planning, warm material palettes,
-              and sculptural silhouettes to craft homes that feel timeless.
+              We create welcoming interiors with clear planning, warm materials,
+              and soft forms that feel timeless.
             </p>
           </div>
           <div className="rounded-3xl border border-ash/30 bg-linen px-6 py-5 text-sm text-ash">
